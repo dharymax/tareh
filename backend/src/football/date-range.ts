@@ -25,7 +25,7 @@ export function currentAdenDateKey(now = new Date()): string {
 export function dateRange(from: string, to: string): { gte: Date; lte: Date } {
   const start = adenDayRange(from).gte;
   const end = adenDayRange(to).lt;
-  if (start > end) {
+  if (start >= end) {
     throw new BadRequestException('"from" must be on or before "to"');
   }
   const maxRange = 31 * 24 * 60 * 60 * 1000;
