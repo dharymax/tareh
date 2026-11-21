@@ -45,10 +45,10 @@ export function calculatePredictionPoints(
     return { points: 3, resultType: 'CORRECT_OUTCOME' };
   }
   if (
-    prediction.homeGoals - prediction.awayGoals ===
-    actual.homeGoals - actual.awayGoals
+    prediction.homeGoals + prediction.awayGoals ===
+    actual.homeGoals + actual.awayGoals
   ) {
-    return { points: 2, resultType: 'CORRECT_DIFFERENCE' };
+    return { points: 2, resultType: 'CORRECT_TOTAL_GOALS' };
   }
   return { points: 0, resultType: 'INCORRECT' };
 }
