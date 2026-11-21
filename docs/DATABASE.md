@@ -165,7 +165,7 @@ CREATE TABLE scoring_rules (
   version INTEGER UNIQUE NOT NULL,
   exact_score_points SMALLINT NOT NULL,
   correct_outcome_points SMALLINT NOT NULL,
-  correct_difference_points SMALLINT NOT NULL,
+  correct_total_goals_points SMALLINT NOT NULL,
   is_active BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

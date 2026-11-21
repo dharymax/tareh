@@ -1,0 +1,16 @@
+{
+  "name": "tareh",
+  "private": true,
+  "version": "0.1.0",
+  "description": "TAREH - Arabic football fixtures, scores and free predictions",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "build:backend": "npm --prefix backend run build",
+    "test:backend": "npm --prefix backend test",
+    "db:generate": "npm --prefix backend run prisma:generate",
+    "db:migrate": "npm --prefix backend run prisma:migrate"
+  },
+  "engines": {
+    "node": ">=24.15.0"
+  }
+}

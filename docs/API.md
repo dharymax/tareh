@@ -103,7 +103,7 @@ SCHEDULED, LIVE, HALF_TIME, PAUSED, FINISHED, POSTPONED, CANCELLED, ABANDONED.
 Settlement only after trusted final result is confirmed:
 - Exact score: 5.
 - Correct outcome: 3.
-- Correct goal difference: 2.
+- Correct total goals, only when the outcome is incorrect: 2.
 - Otherwise: 0.
 Apply highest matching category only. Store scoring-rule version.
 

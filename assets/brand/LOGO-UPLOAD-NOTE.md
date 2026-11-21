@@ -1,9 +1,8 @@
-# Official logo asset
+# Official TAREH logo
 
-The user supplied the official TAREH logo as a 1254 × 1254 transparent PNG.
+The user supplied the original 1254 × 1254 transparent PNG.
 
-The GitHub file-content connector rejected the binary base64 upload, so the binary image is not yet committed. Upload the original file as:
+An optimized 256 × 256 launcher-icon derivative has been committed:
+- `assets/brand/tareh-icon-256.png`
 
-`assets/brand/tareh-logo.png`
-
-Do not recreate, crop, recolor, or substitute another logo.
+The original full-resolution upload has not yet been added to GitHub. Keep the original in the conversation source; do not recreate, crop, recolor or replace the approved mark.
