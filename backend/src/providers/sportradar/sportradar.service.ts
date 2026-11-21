@@ -176,8 +176,8 @@ export class SportradarService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getConnectionStatus() {
-    const competitions = await this.getCompetitions('all');
-    const europeanCompetitions = competitions.filter((competition) =>
+    const catalogue = await this.getCompetitions('all');
+    const europeanCompetitions = catalogue.data.filter((competition) =>
       this.isEuropeanCompetition(competition),
     );
 
@@ -185,7 +185,7 @@ export class SportradarService {
       provider: 'Sportradar Soccer API v4',
       connected: true,
       accessLevel: this.getAccessLevel(),
-      availableCompetitions: competitions.length,
+      availableCompetitions: catalogue.count,
       europeanCompetitionCount: europeanCompetitions.length,
       competitions: europeanCompetitions,
       hasEuropeanCoverage: europeanCompetitions.length > 0,
