@@ -63,7 +63,7 @@ export class FootballService {
       take: query.limit ?? 50,
       include: { country: { select: { iso2: true, name: true } } },
     });
-    return { data, meta: { count: data.length, lastUpdatedAt: new Date().toISOString() } };
+    return { data, meta: { count: data.length, generatedAt: new Date().toISOString() } };
   }
 
   async getTeam(id: string) {
