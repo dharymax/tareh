@@ -30,6 +30,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -37,12 +38,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -62,7 +66,9 @@ fun HomeScreen(
   matches: List<MatchDto>,
   loading: Boolean,
   error: String?,
+  predictionMessage: String?,
   onRefresh: () -> Unit,
+  onPredict: (String, Int, Int) -> Unit,
   onLogout: () -> Unit,
 ) {
   var selectedTab by remember { mutableIntStateOf(0) }
@@ -95,7 +101,9 @@ fun HomeScreen(
         matches = matches,
         loading = loading,
         error = error,
+        predictionMessage = predictionMessage,
         onRefresh = onRefresh,
+        onPredict = onPredict,
         modifier = Modifier.padding(padding),
       )
     } else {
@@ -113,7 +121,9 @@ private fun MatchHomeContent(
   matches: List<MatchDto>,
   loading: Boolean,
   error: String?,
+  predictionMessage: String?,
   onRefresh: () -> Unit,
+  onPredict: (String, Int, Int) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   LazyColumn(
@@ -174,6 +184,17 @@ private fun MatchHomeContent(
       }
     }
 
+    if (predictionMessage != null) {
+      item {
+        Text(
+          predictionMessage,
+          color = if (predictionMessage.startsWith("تم")) Color(0xFF54D6A1) else Color(0xFFFFA1A1),
+          fontSize = 11.sp,
+          modifier = Modifier.fillMaxWidth().padding(horizontal = 3.dp),
+        )
+      }
+    }
+
     when {
       loading -> item {
         Box(Modifier.fillMaxWidth().padding(30.dp), contentAlignment = Alignment.Center) {
@@ -197,14 +218,20 @@ private fun MatchHomeContent(
         )
       }
       else -> items(matches, key = { it.id }) { match ->
-        MatchCard(match = match)
+        MatchCard(match = match, onPredict = onPredict)
       }
     }
   }
 }
 
 @Composable
-private fun MatchCard(match: MatchDto) {
+private fun MatchCard(
+  match: MatchDto,
+  onPredict: (String, Int, Int) -> Unit,
+) {
+  var homeGoals by remember(match.id) { mutableStateOf("") }
+  var awayGoals by remember(match.id) { mutableStateOf("") }
+
   Card(
     modifier = Modifier.fillMaxWidth(),
     shape = RoundedCornerShape(17.dp),
@@ -241,6 +268,48 @@ private fun MatchCard(match: MatchDto) {
           Text(match.kickoffAt.toAdenTime(), color = Muted, fontSize = 10.sp)
         }
         TeamColumn(match.awayTeam.name, Modifier.weight(1f))
+      }
+
+      if (match.status == "SCHEDULED") {
+        HorizontalDivider(color = Color(0xFF26364D))
+        Text("توقع النتيجة مجاناً", color = Gold, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(9.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          OutlinedTextField(
+            value = homeGoals,
+            onValueChange = { homeGoals = it.filter(Char::isDigit).take(2) },
+            modifier = Modifier.weight(1f),
+            label = { Text("أهداف ${match.homeTeam.shortName ?: "الأول"}", fontSize = 9.sp) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+          )
+          Text(":", color = Muted, fontWeight = FontWeight.Bold)
+          OutlinedTextField(
+            value = awayGoals,
+            onValueChange = { awayGoals = it.filter(Char::isDigit).take(2) },
+            modifier = Modifier.weight(1f),
+            label = { Text("أهداف ${match.awayTeam.shortName ?: "الثاني"}", fontSize = 9.sp) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+          )
+        }
+        Button(
+          onClick = {
+            val home = homeGoals.toIntOrNull()
+            val away = awayGoals.toIntOrNull()
+            if (home != null && away != null && home in 0..30 && away in 0..30) {
+              onPredict(match.id, home, away)
+            }
+          },
+          modifier = Modifier.fillMaxWidth(),
+          enabled = homeGoals.toIntOrNull()?.let { it in 0..30 } == true &&
+            awayGoals.toIntOrNull()?.let { it in 0..30 } == true,
+        ) {
+          Text("حفظ التوقع")
+        }
       }
     }
   }
