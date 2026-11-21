@@ -98,7 +98,7 @@ class MainActivity : ComponentActivity() {
             try {
               val validTokens = ensureValidSession(api, tokenStore, current)
               if (validTokens != current) tokens = validTokens
-              matches = api.getTodayMatches().data
+              matches = api.getUpcomingMatches().data
               leaderboardLoading = true
               leaderboardError = null
               try {
