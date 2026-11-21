@@ -13,11 +13,11 @@ Database: PostgreSQL. ORM: Prisma. Primary identifiers: UUID. Store timestamps i
 - matches 1—N match_statistics
 - users 1—N predictions
 - matches 1—N predictions
-- predictions 1—N point_transactions (settlement and reversal history)
+- predictions 1—N prediction_results; results 1—N point_transactions (settlement and reversal history)
 - users 1—N notifications and device_tokens
 - provider_configs 1—N sync_logs
 
-## Core PostgreSQL schema (reference DDL)
+## Core PostgreSQL schema (reference DDL)\n\nThe implementation source of truth is `backend/prisma/schema.prisma`; keep this conceptual DDL synchronized when the Prisma schema changes.
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -165,7 +165,7 @@ CREATE TABLE scoring_rules (
   version INTEGER UNIQUE NOT NULL,
   exact_score_points SMALLINT NOT NULL,
   correct_outcome_points SMALLINT NOT NULL,
-  correct_difference_points SMALLINT NOT NULL,
+  correct_total_goals_points SMALLINT NOT NULL,
   is_active BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -245,7 +245,7 @@ CREATE TABLE audit_logs (
 );
 ```
 
-## Important implementation notes
+## Important implementation notes\n\n9. Scoring uses `correct_total_goals_points`, not goal difference: getting goal difference correct always implies getting the match outcome correct, so those two categories would overlap. Total-goals scoring is awarded only when the outcome is wrong but the combined goals total matches.
 1. Execute prediction create/update in a transaction and lock/read the match row before checking kickoff/status, to reduce race conditions.
 2. Enforce the unique (user_id, match_id) constraint at database level.
 3. Never update historical point transactions. Corrections create explicit reversal entries and replacement settlements.
