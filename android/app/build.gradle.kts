@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val debugApiBaseUrl = providers.gradleProperty("TAREH_DEBUG_API_BASE_URL")
+    .orElse("http://10.0.2.2:3000/api/v1")
 val releaseApiBaseUrl = providers.gradleProperty("TAREH_API_BASE_URL")
     .orElse("https://api.tareh.example/api/v1")
 
