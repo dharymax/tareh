@@ -9,6 +9,16 @@ type Session = {
   user: { id: string; displayName: string; status: string };
 };
 
+type PendingMatch = {
+  id: string;
+  kickoffAt: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  league: { id: string; name: string; logoUrl: string | null };
+  homeTeam: { id: string; name: string; shortName: string | null; logoUrl: string | null };
+  awayTeam: { id: string; name: string; shortName: string | null; logoUrl: string | null };
+};
+
 type Dashboard = {
   users: { total: number; active: number };
   matches: { today: number; live: number; awaitingResultReview: number };
@@ -181,6 +191,11 @@ function App() {
   const [checkedAt, setCheckedAt] = useState<string>('');
   const [session, setSession] = useState<Session | null>(null);
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [pendingMatches, setPendingMatches] = useState<PendingMatch[]>([]);
+  const [pendingError, setPendingError] = useState('');
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [matchScores, setMatchScores] = useState<Record<string, { home: string; away: string }>>({});
+  const [finalizingMatchId, setFinalizingMatchId] = useState<string | null>(null);
   const [dashboardError, setDashboardError] = useState('');
   const [loading, setLoading] = useState(false);
   const [notAuthorized, setNotAuthorized] = useState(false);
@@ -215,7 +230,9 @@ function App() {
     let active = true;
     const load = async () => {
       setLoading(true);
+      setPendingLoading(true);
       setDashboardError('');
+      setPendingError('');
       setNotAuthorized(false);
       try {
         let response = await fetchDashboard(session.accessToken);
@@ -243,10 +260,30 @@ function App() {
         if (!response.ok) throw new Error(await readError(response));
         const body = await response.json() as { data: Dashboard };
         if (active) setDashboard(body.data);
+
+        const pendingResponse = await fetch(`${apiBase}/admin/matches/pending-review`, {
+          headers: { Authorization: `Bearer ${currentSession.accessToken}` },
+          cache: 'no-store',
+        });
+        if (!pendingResponse.ok) throw new Error(await readError(pendingResponse));
+        const pendingBody = await pendingResponse.json() as { data: PendingMatch[] };
+        if (active) {
+          setPendingMatches(pendingBody.data);
+          setMatchScores(Object.fromEntries(pendingBody.data.map((match) => [
+            match.id,
+            {
+              home: match.homeScore === null ? '' : String(match.homeScore),
+              away: match.awayScore === null ? '' : String(match.awayScore),
+            },
+          ])));
+        }
       } catch (cause) {
         if (active) setDashboardError(cause instanceof Error ? cause.message : 'تعذر تحميل لوحة التحكم.');
       } finally {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+          setPendingLoading(false);
+        }
       }
     };
 
@@ -268,7 +305,89 @@ function App() {
     }
     setSession(null);
     setDashboard(null);
+    setPendingMatches([]);
+    setPendingError('');
     setDashboardError('');
+  };
+
+  const updateMatchScore = (matchId: string, field: 'home' | 'away', value: string) => {
+    setMatchScores((previous) => ({
+      ...previous,
+      [matchId]: {
+        ...(previous[matchId] ?? { home: '', away: '' }),
+        [field]: value.replace(/[^0-9]/g, '').slice(0, 2),
+      },
+    }));
+  };
+
+  const finalizeMatch = async (match: PendingMatch) => {
+    if (!session) return;
+    const score = matchScores[match.id] ?? { home: '', away: '' };
+    const homeScore = Number(score.home);
+    const awayScore = Number(score.away);
+    if (
+      score.home === '' || score.away === '' ||
+      !Number.isInteger(homeScore) || !Number.isInteger(awayScore) ||
+      homeScore < 0 || homeScore > 30 || awayScore < 0 || awayScore > 30
+    ) {
+      setPendingError('أدخل نتيجة صحيحة من 0 إلى 30 لكل فريق.');
+      return;
+    }
+
+    setFinalizingMatchId(match.id);
+    setPendingError('');
+    try {
+      let accessToken = session.accessToken;
+      let response = await fetch(`${apiBase}/admin/matches/${match.id}/finalize`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ homeScore, awayScore }),
+      });
+
+      if (response.status === 401) {
+        const refreshResponse = await fetch(`${apiBase}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: session.refreshToken }),
+        });
+        if (!refreshResponse.ok) throw new Error('انتهت الجلسة. سجّل الدخول مجدداً.');
+        const refreshed = await refreshResponse.json() as {
+          accessToken: string; refreshToken: string;
+        };
+        accessToken = refreshed.accessToken;
+        setSession({ ...session, accessToken, refreshToken: refreshed.refreshToken });
+        response = await fetch(`${apiBase}/admin/matches/${match.id}/finalize`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ homeScore, awayScore }),
+        });
+      }
+
+      if (response.status === 403) {
+        throw new Error('لا تملك صلاحية اعتماد نتائج المباريات.');
+      }
+      if (!response.ok) throw new Error(await readError(response));
+
+      setPendingMatches((previous) => previous.filter((item) => item.id !== match.id));
+      setDashboard((previous) => previous ? {
+        ...previous,
+        matches: {
+          ...previous.matches,
+          awaitingResultReview: Math.max(0, previous.matches.awaitingResultReview - 1),
+        },
+      } : previous);
+      setPendingError('');
+    } catch (cause) {
+      setPendingError(cause instanceof Error ? cause.message : 'تعذر اعتماد نتيجة المباراة.');
+    } finally {
+      setFinalizingMatchId(null);
+    }
   };
 
   if (!session) return <LoginPanel onLogin={setSession} />;
@@ -369,6 +488,71 @@ function App() {
               <li><span className="todo-check">3</span><div><b>استكمال إدارة البطولات والفرق</b><small>ربط وظائف الإدارة بالـ API</small></div></li>
             </ul>
           </article>
+        </section>
+
+        <section className="panel review-panel">
+          <div className="panel-heading">
+            <div>
+              <h3>مراجعة النتائج النهائية</h3>
+              <p>المباريات المنتهية التي تنتظر اعتماد النتيجة واحتساب النقاط</p>
+            </div>
+            <span className="muted-chip">{pendingMatches.length} مباراة</span>
+          </div>
+          {pendingError && <div className="admin-alert warning" role="alert">{pendingError}</div>}
+          {pendingLoading && pendingMatches.length === 0 ? (
+            <p className="review-empty">جارٍ تحميل المباريات...</p>
+          ) : pendingMatches.length === 0 ? (
+            <p className="review-empty">لا توجد مباريات تنتظر مراجعة النتائج حالياً.</p>
+          ) : (
+            <div className="pending-match-list">
+              {pendingMatches.map((match) => {
+                const score = matchScores[match.id] ?? { home: '', away: '' };
+                return (
+                  <article className="pending-match-item" key={match.id}>
+                    <div className="pending-match-info">
+                      <span>{match.league.name}</span>
+                      <strong>{match.homeTeam.name} <i>—</i> {match.awayTeam.name}</strong>
+                      <small>{new Date(match.kickoffAt).toLocaleString('ar-YE')}</small>
+                    </div>
+                    <div className="pending-score-fields">
+                      <label>
+                        <span>{match.homeTeam.shortName || 'المضيف'}</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="30"
+                          inputMode="numeric"
+                          value={score.home}
+                          onChange={(event) => updateMatchScore(match.id, 'home', event.target.value)}
+                          aria-label={`نتيجة ${match.homeTeam.name}`}
+                        />
+                      </label>
+                      <b>:</b>
+                      <label>
+                        <span>{match.awayTeam.shortName || 'الضيف'}</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="30"
+                          inputMode="numeric"
+                          value={score.away}
+                          onChange={(event) => updateMatchScore(match.id, 'away', event.target.value)}
+                          aria-label={`نتيجة ${match.awayTeam.name}`}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        disabled={finalizingMatchId === match.id}
+                        onClick={() => void finalizeMatch(match)}
+                      >
+                        {finalizingMatchId === match.id ? 'جارٍ الاعتماد...' : 'اعتماد النتيجة'}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         <footer>طارح © 2026 · منصة رياضية مجانية · جميع الحقوق محفوظة</footer>
