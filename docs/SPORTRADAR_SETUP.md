@@ -2,7 +2,7 @@
 
 ## 1. Confirm product access, licensing and coverage
 
-The integration uses the **Sportradar Soccer API v4** product. A Marketplace account or a key for another Sportradar product is not sufficient by itself; the key must be enabled for Soccer API v4.
+The integration uses the **Sportradar Soccer API v4** product and currently targets European domestic leagues and UEFA competitions returned by your account. A Marketplace account or a key for another Sportradar product is not sufficient by itself; the key must be enabled for Soccer API v4.
 
 **Important legal/product restriction:** Sportradar's current Master Terms (last updated November 13, 2026) restrict a free trial to internal evaluation; trial data/content must not be published or displayed to app users. The terms also require prior written approval for use in a betting, gaming, gambling or wagering capacity, and separately restrict prediction-market, trading, financial-product or similar use without prior written consent. TAREH's free non-cash prediction points do not automatically establish that the use is permitted. Obtain written confirmation from Sportradar and the correct production license/order form before showing the data publicly or launching prediction features that rely on it. Until then, use the trial only for private technical evaluation.
 
@@ -27,7 +27,7 @@ When running Docker Compose from the repository root, put the same variables in 
 
 Restart the API after changing the environment.
 
-## 3. Check the connection and Yemen coverage
+## 3. Check the connection and European coverage
 
 Use an admin access token belonging to a user with `SUPER_ADMIN` or `SPORTS_MANAGER`.
 
@@ -42,11 +42,11 @@ The response includes:
 - `yemenCompetitions`: competitions categorized under Yemen.
 - `hasYemenCoverage`: whether any Yemen competition was returned by the catalog.
 
-If `hasYemenCoverage` is false, do not choose a different country's competition as a replacement for the Yemeni league. Check the Coverage Matrix and confirm the required competition/season with Sportradar.
+If `hasEuropeanCoverage` is false, check that your key is enabled for Soccer API v4 and review your subscribed product and coverage matrix.
 
 ## 4. Select a season
 
-For a competition ID returned by the previous request:
+For a European competition ID returned by the previous request:
 
 ```http
 GET /api/v1/admin/providers/sportradar/competitions/sr:competition:123/seasons
