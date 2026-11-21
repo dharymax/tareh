@@ -61,6 +61,24 @@ export class FootballService {
     });
   }
 
+  async getLeague(leagueId: string) {
+    const league = await this.prisma.league.findFirst({
+      where: { id: leagueId, isEnabled: true },
+      select: {
+        id: true,
+        name: true,
+        logoUrl: true,
+        country: { select: { name: true, iso2: true } },
+        seasons: {
+          orderBy: { startsOn: 'desc' },
+          select: { id: true, name: true, startsOn: true, endsOn: true, isCurrent: true },
+        },
+      },
+    });
+    if (!league) throw new NotFoundException('البطولة غير موجودة');
+    return league;
+  }
+
   async listTeams(query: { leagueId?: string; search?: string }) {
     const search = query.search?.trim();
     return this.prisma.team.findMany({
@@ -175,6 +193,45 @@ export class FootballService {
     return match;
   }
 
+  async getMatchStatistics(matchId: string) {
+    const matchExists = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      select: { id: true },
+    });
+    if (!matchExists) throw new NotFoundException('المباراة غير موجودة');
+    return this.prisma.matchStatistic.findMany({
+      where: { matchId },
+      orderBy: [{ teamId: 'asc' }, { statisticKey: 'asc' }],
+      select: {
+        teamId: true,
+        statisticKey: true,
+        statisticValue: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async getMatchEvents(matchId: string) {
+    const matchExists = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      select: { id: true },
+    });
+    if (!matchExists) throw new NotFoundException('المباراة غير موجودة');
+    return this.prisma.matchEvent.findMany({
+      where: { matchId },
+      orderBy: [{ minute: 'asc' }, { addedMinute: 'asc' }],
+      select: {
+        id: true,
+        minute: true,
+        addedMinute: true,
+        eventType: true,
+        detail: true,
+        team: { select: { id: true, name: true } },
+        player: { select: { id: true, name: true } },
+      },
+    });
+  }
+
   private parseStatus(value?: string): MatchStatus | undefined {
     if (!value) return undefined;
     const normalized = value.toUpperCase();
@@ -187,8 +244,19 @@ export class FootballService {
   private parseDate(value: string): { start: Date; end: Date } {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
     if (!match) throw new BadRequestException('date must use YYYY-MM-DD');
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
     const start = new Date(`${value}T00:00:00+03:00`);
     this.assertValidDate(start, 'date');
+    const check = new Date(Date.UTC(year, month - 1, day));
+    if (
+      check.getUTCFullYear() !== year ||
+      check.getUTCMonth() !== month - 1 ||
+      check.getUTCDate() !== day
+    ) {
+      throw new BadRequestException('date must be a real calendar date');
+    }
     return { start, end: new Date(start.getTime() + 86400000) };
   }
 
