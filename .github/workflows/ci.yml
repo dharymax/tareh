@@ -1,6 +1,13 @@
 name: TAREH CI
 
 on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: 'API base URL embedded in the debug APK (use your PC LAN IP for a physical phone)'
+        required: false
+        default: 'http://10.0.2.2:3000/api/v1/'
+        type: string
   push:
     branches: [main]
   pull_request:
@@ -68,7 +75,9 @@ jobs:
       - name: Install Android platform
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
       - name: Build debug APK
-        run: ./gradlew :android:app:assembleDebug --no-daemon
+        env:
+          TAREH_API_BASE_URL: ${{ inputs.api_base_url || 'http://10.0.2.2:3000/api/v1/' }}
+        run: ./gradlew :android:app:assembleDebug --no-daemon "-PtarehApiBaseUrl=$TAREH_API_BASE_URL"
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
