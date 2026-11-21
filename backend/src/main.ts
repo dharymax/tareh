@@ -8,7 +8,7 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api/v1');
-  app.use(helmet());
+  app.use(helmet());\n  app.enableShutdownHooks();
   app.enableCors({
     origin: process.env.API_CORS_ORIGIN?.split(',').map((value) => value.trim()) ?? false,
     credentials: true,
