@@ -37,8 +37,10 @@ interface TarehApi {
     @Body body: CreatePredictionRequest,
   ): ApiEnvelope<PredictionDto>
 
-  @GET("matches/today")
-  suspend fun getTodayMatches(): ApiEnvelope<List<MatchDto>>
+  @GET("matches/upcoming")
+  suspend fun getUpcomingMatches(
+    @Query("limit") limit: Int = 50,
+  ): ApiEnvelope<List<MatchDto>>
 
   @GET("matches/live")
   suspend fun getLiveMatches(): ApiEnvelope<List<MatchDto>>
