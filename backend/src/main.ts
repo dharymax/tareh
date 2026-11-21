@@ -8,7 +8,8 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api/v1');
-  app.use(helmet());\n  app.enableShutdownHooks();
+  app.use(helmet());
+  app.enableShutdownHooks();
   app.enableCors({
     origin: process.env.API_CORS_ORIGIN?.split(',').map((value) => value.trim()) ?? false,
     credentials: true,
@@ -20,7 +21,6 @@ async function bootstrap(): Promise<void> {
       transform: true,
     }),
   );
-  app.enableShutdownHooks();
 
   const port = Number(process.env.API_PORT ?? 3000);
   await app.listen(port, '0.0.0.0');
