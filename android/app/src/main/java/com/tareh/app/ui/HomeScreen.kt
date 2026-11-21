@@ -189,7 +189,7 @@ private fun MatchHomeContent(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        Text("مباريات اليوم", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        Text("المباريات القادمة", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
         Text("توقيت صنعاء", color = Muted, fontSize = 10.sp)
       }
     }
@@ -221,8 +221,8 @@ private fun MatchHomeContent(
       }
       matches.isEmpty() -> item {
         StateCard(
-          title = "لا توجد مباريات مجدولة اليوم",
-          message = "سيتم عرض مباريات اليوم هنا عند توفرها من مزود البيانات.",
+          title = "لا توجد مباريات قادمة حالياً",
+          message = "ستظهر هنا مباريات البطولات التي تم استيراد مواسمها من مزود البيانات.",
           action = null,
           onAction = {},
         )
