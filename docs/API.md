@@ -25,7 +25,12 @@ Development: the placeholder delivery adapter writes the test code to the backen
 
 Access tokens are HS256 JWTs with a 15-minute lifetime. Refresh tokens are random opaque values stored only as SHA-256 hashes, have a 30-day lifetime and rotate on refresh. Logout revokes the current refresh session.
 
-### Admin (authenticated and role-protected)\n- GET /admin/dashboard — requires SUPER_ADMIN or SPORTS_MANAGER.\n\n### Football (public read)
+### Admin (authenticated and role-protected)
+- GET /admin/dashboard — requires SUPER_ADMIN or SPORTS_MANAGER.
+- GET /admin/matches/pending-review — requires SUPER_ADMIN or SPORTS_MANAGER; returns finished matches awaiting result confirmation.
+- POST /admin/matches/:matchId/finalize — requires SUPER_ADMIN or SPORTS_MANAGER; body: { "homeScore": 2, "awayScore": 1 }. Only accepts finished matches whose result has not already been confirmed. Result settlement and point transactions are committed atomically, with an audit record.
+
+### Football (public read)
 - GET /leagues?enabled=true|false
 - GET /leagues/:leagueId
 - GET /teams?leagueId=&search=
