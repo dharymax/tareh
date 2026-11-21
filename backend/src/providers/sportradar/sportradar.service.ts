@@ -10,6 +10,15 @@ import { mapSportradarStatus } from './sportradar-status.js';
 
 const PROVIDER_CODE = 'sportradar';
 const YEMEN_COUNTRY_ISO2 = 'YE';
+const EUROPEAN_COUNTRY_CODES = new Set([
+  'ALB', 'AND', 'ARM', 'AUT', 'AZE', 'BEL', 'BIH', 'BLR', 'BUL', 'CRO',
+  'CYP', 'CZE', 'DEN', 'ENG', 'ESP', 'EST', 'FIN', 'FRA', 'FRO', 'GEO',
+  'GER', 'GRE', 'HUN', 'IRL', 'ISL', 'ISR', 'ITA', 'KAZ', 'KOS', 'LAT',
+  'LIE', 'LTU', 'LUX', 'MDA', 'MKD', 'MLT', 'MNE', 'NED', 'NIR', 'NOR',
+  'POL', 'POR', 'ROU', 'RUS', 'SCO', 'SMR', 'SRB', 'SUI', 'SVK', 'SVN',
+  'SWE', 'TUR', 'UKR', 'WAL',
+]);
+const EUROPEAN_COMPETITION_NAMES = /UEFA|Champions League|Europa League|Conference League|Super Cup/i;
 
 type JsonObject = Record<string, unknown>;
 
@@ -167,22 +176,9 @@ export class SportradarService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getConnectionStatus() {
-    const response = await this.getJson('competitions');
-    const competitions = toRecords(response.competitions);
-
-    const yemenCompetitions: CompetitionSummary[] = competitions.flatMap(
-      (competition) => {
-        const category = asObject(competition.category);
-        const countryCode = readString(category, 'country_code')?.toUpperCase() ?? null;
-        const categoryName = readString(category, 'name');
-        if (countryCode !== 'YEM' && categoryName?.toLowerCase() !== 'yemen') {
-          return [];
-        }
-        const id = readString(competition, 'id');
-        const name = readString(competition, 'name');
-        if (!id || !name) return [];
-        return [{ id, name, categoryName, countryCode }];
-      },
+    const competitions = await this.getCompetitions('all');
+    const europeanCompetitions = competitions.filter((competition) =>
+      this.isEuropeanCompetition(competition),
     );
 
     return {
@@ -190,9 +186,49 @@ export class SportradarService {
       connected: true,
       accessLevel: this.getAccessLevel(),
       availableCompetitions: competitions.length,
-      yemenCompetitions,
-      hasYemenCoverage: yemenCompetitions.length > 0,
+      europeanCompetitions: europeanCompetitions.length,
+      hasEuropeanCoverage: europeanCompetitions.length > 0,
     };
+  }
+
+  async getCompetitions(region: 'all' | 'europe' = 'europe') {
+    const response = await this.getJson('competitions');
+    const competitions: CompetitionSummary[] = toRecords(response.competitions)
+      .flatMap((competition) => {
+        const category = asObject(competition.category);
+        const id = readString(competition, 'id');
+        const name = readString(competition, 'name');
+        if (!id || !name) return [];
+        return [{
+          id,
+          name,
+          categoryName: readString(category, 'name'),
+          countryCode:
+            readString(category, 'country_code')?.toUpperCase() ?? null,
+        }];
+      });
+
+    const filtered = region === 'europe'
+      ? competitions.filter((competition) =>
+          this.isEuropeanCompetition(competition),
+        )
+      : competitions;
+
+    return {
+      region,
+      count: filtered.length,
+      data: filtered.sort((left, right) =>
+        (left.categoryName ?? '').localeCompare(right.categoryName ?? '') ||
+        left.name.localeCompare(right.name),
+      ),
+    };
+  }
+
+  private isEuropeanCompetition(competition: CompetitionSummary): boolean {
+    const code = competition.countryCode?.toUpperCase() ?? '';
+    return EUROPEAN_COUNTRY_CODES.has(code) ||
+      EUROPEAN_COMPETITION_NAMES.test(competition.name) ||
+      EUROPEAN_COMPETITION_NAMES.test(competition.categoryName ?? '');
   }
 
   async getCompetitionSeasons(competitionId: string) {
