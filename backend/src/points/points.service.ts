@@ -44,11 +44,15 @@ export class PointsService {
         throw new BadRequestException('لا يمكن اعتماد نتيجة مباراة ملغاة أو متوقفة');
       }
 
+      if (match.status !== 'FINISHED') {
+        throw new BadRequestException('يجب أن تكون حالة المباراة منتهية قبل اعتماد النتيجة');
+      }
+
       if (match.kickoff_at.getTime() > match.database_now.getTime()) {
         throw new BadRequestException('لا يمكن اعتماد نتيجة مباراة لم يبدأ موعدها');
       }
 
-      if (match.status === 'FINISHED' && match.result_confirmed_at) {
+      if (match.result_confirmed_at) {
         if (match.home_score === homeScore && match.away_score === awayScore) {
           throw new ConflictException('تم اعتماد نتيجة هذه المباراة مسبقاً');
         }
