@@ -18,7 +18,7 @@ Tagline: كرة القدم في متناولك
 - Arabic RTL layout and legible Arabic typography.
 
 ## App icon
-Use the supplied square PNG as the source of truth. For Android launcher assets, generate adaptive icon foreground/background variants and test safe-zone cropping on multiple launchers. Do not stretch the logo.
+Use assets/brand/tareh-icon-256.png as the repository launcher icon. The optimized 256 × 256 PNG preserves transparency and the supplied mark. For Android launcher assets, generate adaptive icon foreground/background variants and test safe-zone cropping on multiple launchers. Do not stretch the logo.
 
 ## Usage
 Do not recolor, distort or redraw the supplied logo without approval.
