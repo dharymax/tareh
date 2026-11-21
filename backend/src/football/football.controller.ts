@@ -18,6 +18,13 @@ export class FootballController {
     return { data: await this.footballService.listLeagues(isEnabled) };
   }
 
+  @Get('leagues/:leagueId')
+  async getLeague(
+    @Param('leagueId', new ParseUUIDPipe({ version: '4' })) leagueId: string,
+  ) {
+    return { data: await this.footballService.getLeague(leagueId) };
+  }
+
   @Get('teams')
   async listTeams(
     @Query('leagueId') leagueId?: string,
@@ -75,6 +82,20 @@ export class FootballController {
       cursor,
       limit: this.parseLimit(limit),
     });
+  }
+
+  @Get('matches/:matchId/statistics')
+  async getMatchStatistics(
+    @Param('matchId', new ParseUUIDPipe({ version: '4' })) matchId: string,
+  ) {
+    return { data: await this.footballService.getMatchStatistics(matchId) };
+  }
+
+  @Get('matches/:matchId/events')
+  async getMatchEvents(
+    @Param('matchId', new ParseUUIDPipe({ version: '4' })) matchId: string,
+  ) {
+    return { data: await this.footballService.getMatchEvents(matchId) };
   }
 
   @Get('matches/:matchId')
