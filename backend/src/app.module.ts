@@ -6,6 +6,7 @@ import { HealthModule } from './health/health.module.js';
 import { PredictionsModule } from './predictions/predictions.module.js';
 import { LeaderboardModule } from './leaderboard/leaderboard.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { SportradarModule } from './providers/sportradar/sportradar.module.js';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     PredictionsModule,
     AdminModule,
     LeaderboardModule,
+    SportradarModule,
   ],
 })
 export class AppModule {}
