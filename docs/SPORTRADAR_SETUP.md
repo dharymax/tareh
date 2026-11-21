@@ -39,8 +39,9 @@ Authorization: Bearer YOUR_ADMIN_ACCESS_TOKEN
 The response includes:
 - `connected`: whether the key successfully accessed the Soccer competitions feed.
 - `availableCompetitions`: total competitions returned by the key.
-- `yemenCompetitions`: competitions categorized under Yemen.
-- `hasYemenCoverage`: whether any Yemen competition was returned by the catalog.
+- `europeanCompetitionCount`: number of European competitions.
+- `competitions`: the European competitions list, each with a Sportradar ID and country/category name.
+- `hasEuropeanCoverage`: whether the catalog includes at least one European competition.
 
 If `hasEuropeanCoverage` is false, check that your key is enabled for Soccer API v4 and review your subscribed product and coverage matrix.
 
