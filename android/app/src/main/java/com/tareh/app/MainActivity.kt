@@ -150,7 +150,7 @@ class MainActivity : ComponentActivity() {
                 loading = true
                 matchError = null
                 try {
-                  matches = api.getTodayMatches().data
+                  matches = api.getUpcomingMatches().data
                 } catch (exception: Exception) {
                   matchError = exception.userMessage()
                 } finally {
