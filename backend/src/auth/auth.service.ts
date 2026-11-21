@@ -126,17 +126,30 @@ export class AuthService {
         expected.length !== actual.length ||
         !timingSafeEqual(expected, actual)
       ) {
-        await tx.otpChallenge.update({
-          where: { id: challenge.id },
+        await tx.otpChallenge.updateMany({
+          where: {
+            id: challenge.id,
+            consumedAt: null,
+            attempts: { lt: 5 },
+          },
           data: { attempts: { increment: 1 } },
         });
         return { kind: 'wrong' };
       }
 
-      await tx.otpChallenge.update({
-        where: { id: challenge.id },
+      const consumed = await tx.otpChallenge.updateMany({
+        where: {
+          id: challenge.id,
+          consumedAt: null,
+          expiresAt: { gt: now },
+          attempts: { lt: 5 },
+        },
         data: { consumedAt: now },
       });
+
+      // Atomic conditional update ensures a valid OTP can establish only one session,
+      // even if two verify requests race.
+      if (consumed.count !== 1) return { kind: 'invalid' };
 
       let user = await tx.user.findUnique({
         where: { phoneE164 },
