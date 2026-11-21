@@ -34,7 +34,8 @@ Access tokens are HS256 JWTs with a 15-minute lifetime. Refresh tokens are rando
 
 All provider endpoints require Bearer authentication and the `SUPER_ADMIN` or `SPORTS_MANAGER` role.
 
-- GET /admin/providers/sportradar/connection — verifies the Soccer API key and returns the available competition count plus competitions categorized under Yemen.
+- GET /admin/providers/sportradar/connection — verifies the Soccer API key and returns the available competition count plus the European competitions detected for the current account.
+- GET /admin/providers/sportradar/competitions?region=europe|all — lists European competitions by default, or the full provider catalogue when region=all.
 - GET /admin/providers/sportradar/competitions/:competitionId/seasons — lists available seasons for a Sportradar competition.
 - POST /admin/providers/sportradar/sync-season — body: { "competitionId": "sr:competition:...", "seasonId": "sr:season:..." }; imports that season's league, teams and fixtures into PostgreSQL.
 - POST /admin/providers/sportradar/sync-live — refreshes scores/status for currently live matches that were previously imported from Sportradar.
