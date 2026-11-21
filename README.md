@@ -25,6 +25,7 @@
 - [تصميم قاعدة البيانات](docs/DATABASE.md)
 - [واجهات API](docs/API.md)
 - [خطة التنفيذ](docs/IMPLEMENTATION_PLAN.md)
+- [إعداد وربط Sportradar](docs/SPORTRADAR_SETUP.md)
 - [الهوية البصرية](docs/BRAND.md)
 
 ## الشعار
