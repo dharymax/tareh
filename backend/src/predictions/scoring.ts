@@ -6,7 +6,7 @@ export type PredictionScore = {
 export type ScoringResultType =
   | 'EXACT_SCORE'
   | 'CORRECT_OUTCOME'
-  | 'CORRECT_DIFFERENCE'
+  | 'CORRECT_TOTAL_GOALS'
   | 'INCORRECT';
 
 export type ScoringResult = {
