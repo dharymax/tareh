@@ -31,7 +31,7 @@ export class FootballService {
         },
       },
     });
-    return { data, meta: { count: data.length, lastUpdatedAt: new Date().toISOString() } };
+    return { data, meta: { count: data.length, generatedAt: new Date().toISOString() } };
   }
 
   async getLeague(id: string) {
@@ -130,7 +130,7 @@ export class FootballService {
 
   async listUpcomingMatches(query: UpcomingMatchesQueryDto) {
     const from = query.from ?? currentAdenDateKey();
-    const defaultEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const defaultEnd = new Date(adenDayRange(from).gte.getTime() + 7 * 24 * 60 * 60 * 1000);
     const to = query.to ?? currentAdenDateKey(defaultEnd);
     const range = dateRange(from, to);
 
