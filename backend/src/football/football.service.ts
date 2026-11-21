@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -134,7 +135,7 @@ export class FootballService {
     const to = query.to ? new Date(query.to) : new Date(now.getTime() + 14 * 86400000);
     this.assertValidDate(from, 'from');
     this.assertValidDate(to, 'to');
-    if (from >= to) throw new Error('from must be earlier than to');
+    if (from >= to) throw new BadRequestException('from must be earlier than to');
 
     return this.prisma.match.findMany({
       where: {
@@ -178,14 +179,14 @@ export class FootballService {
     if (!value) return undefined;
     const normalized = value.toUpperCase();
     if (!Object.values(MatchStatus).includes(normalized as MatchStatus)) {
-      throw new Error('Invalid match status');
+      throw new BadRequestException('Invalid match status');
     }
     return normalized as MatchStatus;
   }
 
   private parseDate(value: string): { start: Date; end: Date } {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-    if (!match) throw new Error('date must use YYYY-MM-DD');
+    if (!match) throw new BadRequestException('date must use YYYY-MM-DD');
     const start = new Date(`${value}T00:00:00+03:00`);
     this.assertValidDate(start, 'date');
     return { start, end: new Date(start.getTime() + 86400000) };
@@ -207,7 +208,7 @@ export class FootballService {
 
   private assertValidDate(value: Date, field: string): void {
     if (Number.isNaN(value.getTime())) {
-      throw new Error(`${field} must be a valid ISO date`);
+      throw new BadRequestException(`${field} must be a valid ISO date`);
     }
   }
 
