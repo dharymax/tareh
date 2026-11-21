@@ -1,9 +1,11 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
@@ -21,6 +23,19 @@ export class SportradarController {
   @RequireRoles('SUPER_ADMIN', 'SPORTS_MANAGER')
   async connection() {
     return { data: await this.sportradarService.getConnectionStatus() };
+  }
+
+  @Get('competitions')
+  @RequireRoles('SUPER_ADMIN', 'SPORTS_MANAGER')
+  async competitions(@Query('region') region?: string) {
+    if (region && region !== 'all' && region !== 'europe') {
+      throw new BadRequestException('region must be europe or all');
+    }
+    return {
+      data: await this.sportradarService.getCompetitions(
+        region === 'all' ? 'all' : 'europe',
+      ),
+    };
   }
 
   @Get('competitions/:competitionId/seasons')
