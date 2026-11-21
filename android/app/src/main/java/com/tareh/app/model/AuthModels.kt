@@ -38,3 +38,18 @@ data class RefreshTokenResponse(
   val tokenType: String,
   val expiresIn: Int,
 )
+
+data class UserMeProfileDto(
+  val displayName: String,
+  val avatarUrl: String?,
+  val locale: String,
+)
+
+data class UserMeDto(
+  val id: String,
+  val phone: String,
+  val status: String,
+  val profile: UserMeProfileDto?,
+  val points: Int,
+  val createdAt: String,
+)
