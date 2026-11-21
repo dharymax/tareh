@@ -1,0 +1,329 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  HALF_TIME
+  PAUSED
+  FINISHED
+  POSTPONED
+  CANCELLED
+  ABANDONED
+}
+
+enum PredictionResultType {
+  EXACT_SCORE
+  CORRECT_OUTCOME
+  CORRECT_DIFFERENCE
+  INCORRECT
+}
+
+enum PointTransactionReason {
+  SETTLEMENT
+  REVERSAL
+  ADJUSTMENT
+}
+
+model User {
+  id                String            @id @default(uuid()) @db.Uuid
+  phoneE164         String            @unique @map("phone_e164") @db.VarChar(20)
+  status            UserStatus        @default(ACTIVE)
+  phoneVerifiedAt   DateTime?         @map("phone_verified_at") @db.Timestamptz(6)
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  profile           UserProfile?
+  userRoles         UserRole[]
+  predictions       Prediction[]
+  pointTransactions PointTransaction[]
+  notifications     Notification[]
+  deviceTokens      DeviceToken[]
+  auditLogs         AuditLog[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  userId      String   @id @map("user_id") @db.Uuid
+  displayName String   @map("display_name") @db.VarChar(60)
+  avatarUrl   String?  @map("avatar_url")
+  locale      String   @default("ar") @db.VarChar(10)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model Role {
+  id        String     @id @default(uuid()) @db.Uuid
+  code      String     @unique @db.VarChar(40)
+  name      String     @db.VarChar(80)
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId     String   @map("user_id") @db.Uuid
+  roleId     String   @map("role_id") @db.Uuid
+  assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model Country {
+  id      String   @id @default(uuid()) @db.Uuid
+  iso2    String?  @unique @db.Char(2)
+  name    String   @db.VarChar(100)
+  leagues League[]
+  teams   Team[]
+
+  @@map("countries")
+}
+
+model League {
+  id          String   @id @default(uuid()) @db.Uuid
+  providerKey String?  @unique @map("provider_key") @db.VarChar(100)
+  countryId   String?  @map("country_id") @db.Uuid
+  name        String   @db.VarChar(160)
+  logoUrl     String?  @map("logo_url")
+  isEnabled   Boolean  @default(true) @map("is_enabled")
+  country     Country? @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  seasons     Season[]
+  matches     Match[]
+
+  @@map("leagues")
+}
+
+model Season {
+  id        String   @id @default(uuid()) @db.Uuid
+  leagueId  String   @map("league_id") @db.Uuid
+  name      String   @db.VarChar(80)
+  startsOn  DateTime? @map("starts_on") @db.Date
+  endsOn    DateTime? @map("ends_on") @db.Date
+  isCurrent Boolean  @default(false) @map("is_current")
+  league    League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  matches   Match[]
+
+  @@unique([leagueId, name])
+  @@map("seasons")
+}
+
+model Team {
+  id           String           @id @default(uuid()) @db.Uuid
+  providerKey  String?          @unique @map("provider_key") @db.VarChar(100)
+  countryId    String?          @map("country_id") @db.Uuid
+  name         String           @db.VarChar(160)
+  shortName    String?          @map("short_name") @db.VarChar(40)
+  logoUrl      String?          @map("logo_url")
+  isEnabled    Boolean          @default(true) @map("is_enabled")
+  country      Country?         @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  homeMatches  Match[]          @relation("HomeTeam")
+  awayMatches  Match[]          @relation("AwayTeam")
+  statistics   MatchStatistic[]
+
+  @@map("teams")
+}
+
+model Match {
+  id                   String        @id @default(uuid()) @db.Uuid
+  providerKey          String?       @unique @map("provider_key") @db.VarChar(120)
+  leagueId             String        @map("league_id") @db.Uuid
+  seasonId             String?       @map("season_id") @db.Uuid
+  homeTeamId           String        @map("home_team_id") @db.Uuid
+  awayTeamId           String        @map("away_team_id") @db.Uuid
+  kickoffAt            DateTime      @map("kickoff_at") @db.Timestamptz(6)
+  status               MatchStatus   @default(SCHEDULED)
+  homeScore            Int?          @map("home_score") @db.SmallInt
+  awayScore            Int?          @map("away_score") @db.SmallInt
+  resultConfirmedAt    DateTime?     @map("result_confirmed_at") @db.Timestamptz(6)
+  lastProviderUpdateAt DateTime?     @map("last_provider_update_at") @db.Timestamptz(6)
+  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  league               League        @relation(fields: [leagueId], references: [id], onDelete: Restrict)
+  season               Season?       @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+  homeTeam             Team          @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Restrict)
+  awayTeam             Team          @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Restrict)
+  predictions          Prediction[]
+  events               MatchEvent[]
+  statistics           MatchStatistic[]
+
+  @@index([kickoffAt, status])
+  @@index([leagueId, kickoffAt])
+  @@map("matches")
+}
+
+model MatchEvent {
+  id               String   @id @default(uuid()) @db.Uuid
+  matchId          String   @map("match_id") @db.Uuid
+  providerEventKey String?  @map("provider_event_key") @db.VarChar(120)
+  minute           Int?     @db.SmallInt
+  addedMinute      Int?     @map("added_minute") @db.SmallInt
+  eventType        String   @map("event_type") @db.VarChar(40)
+  detail           Json     @default("{}")
+  match            Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, providerEventKey])
+  @@map("match_events")
+}
+
+model MatchStatistic {
+  id             String   @id @default(uuid()) @db.Uuid
+  matchId        String   @map("match_id") @db.Uuid
+  teamId         String   @map("team_id") @db.Uuid
+  statisticKey   String   @map("statistic_key") @db.VarChar(60)
+  statisticValue Json     @map("statistic_value")
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  match          Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  team           Team     @relation(fields: [teamId], references: [id], onDelete: Restrict)
+
+  @@unique([matchId, teamId, statisticKey])
+  @@map("match_statistics")
+}
+
+model Prediction {
+  id          String            @id @default(uuid()) @db.Uuid
+  userId      String            @map("user_id") @db.Uuid
+  matchId     String            @map("match_id") @db.Uuid
+  homeGoals   Int               @map("home_goals") @db.SmallInt
+  awayGoals   Int               @map("away_goals") @db.SmallInt
+  submittedAt DateTime          @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lockedAt    DateTime?         @map("locked_at") @db.Timestamptz(6)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match       Match             @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  results     PredictionResult[]
+
+  @@unique([userId, matchId])
+  @@index([matchId])
+  @@index([userId, submittedAt])
+  @@map("predictions")
+}
+
+model ScoringRule {
+  id                      String             @id @default(uuid()) @db.Uuid
+  version                 Int                @unique
+  exactScorePoints        Int                @map("exact_score_points") @db.SmallInt
+  correctOutcomePoints    Int                @map("correct_outcome_points") @db.SmallInt
+  correctDifferencePoints Int                @map("correct_difference_points") @db.SmallInt
+  isActive                Boolean            @default(false) @map("is_active")
+  createdAt               DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  results                 PredictionResult[]
+
+  @@map("scoring_rules")
+}
+
+model PredictionResult {
+  id            String               @id @default(uuid()) @db.Uuid
+  predictionId  String               @map("prediction_id") @db.Uuid
+  scoringRuleId String               @map("scoring_rule_id") @db.Uuid
+  points        Int                  @db.SmallInt
+  resultType    PredictionResultType @map("result_type")
+  settledAt     DateTime             @default(now()) @map("settled_at") @db.Timestamptz(6)
+  prediction    Prediction           @relation(fields: [predictionId], references: [id], onDelete: Restrict)
+  scoringRule   ScoringRule          @relation(fields: [scoringRuleId], references: [id], onDelete: Restrict)
+  transactions  PointTransaction[]
+
+  @@unique([predictionId, scoringRuleId])
+  @@map("prediction_results")
+}
+
+model PointTransaction {
+  id                 String                  @id @default(uuid()) @db.Uuid
+  userId             String                  @map("user_id") @db.Uuid
+  predictionResultId String                  @map("prediction_result_id") @db.Uuid
+  pointsDelta        Int                     @map("points_delta")
+  reason             PointTransactionReason
+  idempotencyKey     String                  @unique @map("idempotency_key") @db.VarChar(160)
+  createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  user               User                    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  predictionResult   PredictionResult        @relation(fields: [predictionResultId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  @@map("point_transactions")
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  title     String    @db.VarChar(160)
+  body      String
+  payload   Json      @default("{}")
+  readAt    DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model DeviceToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  token      String    @unique @db.Text
+  platform   String    @db.VarChar(20)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastSeenAt DateTime? @map("last_seen_at") @db.Timestamptz(6)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("device_tokens")
+}
+
+model ProviderConfig {
+  id              String   @id @default(uuid()) @db.Uuid
+  providerCode    String   @unique @map("provider_code") @db.VarChar(60)
+  enabled         Boolean  @default(false)
+  secretReference String?  @map("secret_reference")
+  settings        Json     @default("{}")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("provider_configs")
+}
+
+model SyncLog {
+  id             String    @id @default(uuid()) @db.Uuid
+  providerCode   String    @map("provider_code") @db.VarChar(60)
+  resourceType   String    @map("resource_type") @db.VarChar(40)
+  startedAt      DateTime  @map("started_at") @db.Timestamptz(6)
+  finishedAt     DateTime? @map("finished_at") @db.Timestamptz(6)
+  status         String    @db.VarChar(20)
+  recordsRead    Int       @default(0) @map("records_read")
+  recordsWritten Int       @default(0) @map("records_written")
+  errorMessage   String?   @map("error_message")
+
+  @@index([providerCode, startedAt])
+  @@map("sync_logs")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  action      String   @db.VarChar(100)
+  entityType  String   @map("entity_type") @db.VarChar(60)
+  entityId    String?  @map("entity_id") @db.Uuid
+  beforeData  Json?    @map("before_data")
+  afterData   Json?    @map("after_data")
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
