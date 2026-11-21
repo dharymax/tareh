@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { apiGet, ApiError } from './api/client';
-import type { LeaguesResponse, MatchesResponse, MatchStatus } from './types/football';
+import type { LeaguesResponse, TodayMatchesResponse, MatchStatus } from './types/football';
 
 const statusLabels: Record<MatchStatus, string> = {
   SCHEDULED: 'قادمة',
@@ -33,7 +33,7 @@ function formatAdenDate(value: string): string {
 }
 
 export default function App() {
-  const [matches, setMatches] = useState<MatchesResponse | null>(null);
+  const [matches, setMatches] = useState<TodayMatchesResponse | null>(null);
   const [leagues, setLeagues] = useState<LeaguesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +46,7 @@ export default function App() {
       setError(null);
       try {
         const [matchResponse, leagueResponse] = await Promise.all([
-          apiGet<MatchesResponse>('/matches/today', controller.signal),
+          apiGet<TodayMatchesResponse>('/matches/today', controller.signal),
           apiGet<LeaguesResponse>('/leagues', controller.signal),
         ]);
         setMatches(matchResponse);
@@ -197,8 +197,8 @@ export default function App() {
               ))}
             </div>
           )}
-          {matches?.meta.lastUpdatedAt && (
-            <p className="last-update">آخر تحديث للبيانات: {formatAdenDate(matches.meta.lastUpdatedAt)} — {formatAdenTime(matches.meta.lastUpdatedAt)}</p>
+          {matches && (
+            <p className="last-update">بيانات اليوم: {formatAdenDate(`${matches.meta.date}T12:00:00+03:00`)} — المنطقة الزمنية: صنعاء</p>
           )}
         </section>
       </main>
