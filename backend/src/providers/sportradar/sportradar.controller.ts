@@ -19,8 +19,8 @@ export class SportradarController {
 
   @Get('connection')
   @RequireRoles('SUPER_ADMIN', 'SPORTS_MANAGER')
-  connection() {
-    return { data: this.sportradarService.getConnectionStatus() };
+  async connection() {
+    return { data: await this.sportradarService.getConnectionStatus() };
   }
 
   @Get('competitions/:competitionId/seasons')
