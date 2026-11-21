@@ -30,6 +30,17 @@ Access tokens are HS256 JWTs with a 15-minute lifetime. Refresh tokens are rando
 - GET /admin/matches/pending-review — requires SUPER_ADMIN or SPORTS_MANAGER; returns finished matches awaiting result confirmation.
 - POST /admin/matches/:matchId/finalize — requires SUPER_ADMIN or SPORTS_MANAGER; body: { "homeScore": 2, "awayScore": 1 }. Only accepts finished matches whose result has not already been confirmed. Result settlement and point transactions are committed atomically, with an audit record.
 
+### Sports data provider (admin-only)
+
+All provider endpoints require Bearer authentication and the `SUPER_ADMIN` or `SPORTS_MANAGER` role.
+
+- GET /admin/providers/sportradar/connection — verifies the Soccer API key and returns the available competition count plus competitions categorized under Yemen.
+- GET /admin/providers/sportradar/competitions/:competitionId/seasons — lists available seasons for a Sportradar competition.
+- POST /admin/providers/sportradar/sync-season — body: { "competitionId": "sr:competition:...", "seasonId": "sr:season:..." }; imports that season's league, teams and fixtures into PostgreSQL.
+- POST /admin/providers/sportradar/sync-live — refreshes scores/status for currently live matches that were previously imported from Sportradar.
+
+A provider result with status FINISHED is not automatically trusted or settled. It remains pending until an authorized manager reviews and finalizes it through the Admin match-review workflow. Provider keys are read only from backend environment variables and are never returned by these endpoints. Sync is manual in this version; no polling job is started automatically.
+
 ### Football (public read)
 - GET /leagues?enabled=true|false
 - GET /leagues/:leagueId
@@ -66,7 +77,7 @@ The following modules remain on the roadmap and must not be treated as available
 - Team detail and standings.
 - Resettlement/reversal workflow for correcting a result after it has already been confirmed.
 - Notification inbox and device-token registration.
-- User/football management, provider sync, audit log management and broader RBAC-protected write routes.
+- User/football management, audit log management and broader RBAC-protected write routes.
 
 ## Match status enum
 SCHEDULED, LIVE, HALF_TIME, PAUSED, FINISHED, POSTPONED, CANCELLED, ABANDONED.
