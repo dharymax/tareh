@@ -1,13 +1,11 @@
 -- Initial TAREH schema. All timestamps are stored in UTC.
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
 CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'SUSPENDED', 'DELETED');
 CREATE TYPE "MatchStatus" AS ENUM ('SCHEDULED', 'LIVE', 'HALF_TIME', 'PAUSED', 'FINISHED', 'POSTPONED', 'CANCELLED', 'ABANDONED');
 CREATE TYPE "PredictionResultType" AS ENUM ('EXACT_SCORE', 'CORRECT_OUTCOME', 'CORRECT_TOTAL_GOALS', 'INCORRECT');
 CREATE TYPE "PointTransactionReason" AS ENUM ('SETTLEMENT', 'REVERSAL', 'ADJUSTMENT');
 
 CREATE TABLE "users" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "phone_e164" VARCHAR(20) NOT NULL,
   "status" "UserStatus" NOT NULL DEFAULT 'ACTIVE',
   "phone_verified_at" TIMESTAMPTZ(6),
@@ -28,7 +26,7 @@ CREATE TABLE "user_profiles" (
 );
 
 CREATE TABLE "roles" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "code" VARCHAR(40) NOT NULL,
   "name" VARCHAR(80) NOT NULL,
   CONSTRAINT "roles_pkey" PRIMARY KEY ("id")
@@ -43,7 +41,7 @@ CREATE TABLE "user_roles" (
 );
 
 CREATE TABLE "countries" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "iso2" CHAR(2),
   "name" VARCHAR(100) NOT NULL,
   CONSTRAINT "countries_pkey" PRIMARY KEY ("id")
@@ -51,7 +49,7 @@ CREATE TABLE "countries" (
 CREATE UNIQUE INDEX "countries_iso2_key" ON "countries"("iso2");
 
 CREATE TABLE "leagues" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "provider_key" VARCHAR(100),
   "country_id" UUID,
   "name" VARCHAR(160) NOT NULL,
@@ -62,7 +60,7 @@ CREATE TABLE "leagues" (
 CREATE UNIQUE INDEX "leagues_provider_key_key" ON "leagues"("provider_key");
 
 CREATE TABLE "seasons" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "league_id" UUID NOT NULL,
   "name" VARCHAR(80) NOT NULL,
   "starts_on" DATE,
@@ -73,7 +71,7 @@ CREATE TABLE "seasons" (
 CREATE UNIQUE INDEX "seasons_league_id_name_key" ON "seasons"("league_id", "name");
 
 CREATE TABLE "teams" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "provider_key" VARCHAR(100),
   "country_id" UUID,
   "name" VARCHAR(160) NOT NULL,
@@ -85,7 +83,7 @@ CREATE TABLE "teams" (
 CREATE UNIQUE INDEX "teams_provider_key_key" ON "teams"("provider_key");
 
 CREATE TABLE "matches" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "provider_key" VARCHAR(120),
   "league_id" UUID NOT NULL,
   "season_id" UUID,
@@ -108,7 +106,7 @@ CREATE INDEX "matches_kickoff_at_status_idx" ON "matches"("kickoff_at", "status"
 CREATE INDEX "matches_league_id_kickoff_at_idx" ON "matches"("league_id", "kickoff_at");
 
 CREATE TABLE "match_events" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "match_id" UUID NOT NULL,
   "provider_event_key" VARCHAR(120),
   "minute" SMALLINT,
@@ -120,7 +118,7 @@ CREATE TABLE "match_events" (
 CREATE UNIQUE INDEX "match_events_match_id_provider_event_key_key" ON "match_events"("match_id", "provider_event_key");
 
 CREATE TABLE "match_statistics" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "match_id" UUID NOT NULL,
   "team_id" UUID NOT NULL,
   "statistic_key" VARCHAR(60) NOT NULL,
@@ -131,7 +129,7 @@ CREATE TABLE "match_statistics" (
 CREATE UNIQUE INDEX "match_statistics_match_id_team_id_statistic_key_key" ON "match_statistics"("match_id", "team_id", "statistic_key");
 
 CREATE TABLE "predictions" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "user_id" UUID NOT NULL,
   "match_id" UUID NOT NULL,
   "home_goals" SMALLINT NOT NULL,
@@ -148,7 +146,7 @@ CREATE INDEX "predictions_match_id_idx" ON "predictions"("match_id");
 CREATE INDEX "predictions_user_id_submitted_at_idx" ON "predictions"("user_id", "submitted_at");
 
 CREATE TABLE "scoring_rules" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "version" INTEGER NOT NULL,
   "exact_score_points" SMALLINT NOT NULL,
   "correct_outcome_points" SMALLINT NOT NULL,
@@ -160,7 +158,7 @@ CREATE TABLE "scoring_rules" (
 CREATE UNIQUE INDEX "scoring_rules_version_key" ON "scoring_rules"("version");
 
 CREATE TABLE "prediction_results" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "prediction_id" UUID NOT NULL,
   "scoring_rule_id" UUID NOT NULL,
   "points" SMALLINT NOT NULL,
@@ -171,7 +169,7 @@ CREATE TABLE "prediction_results" (
 CREATE UNIQUE INDEX "prediction_results_prediction_id_scoring_rule_id_key" ON "prediction_results"("prediction_id", "scoring_rule_id");
 
 CREATE TABLE "point_transactions" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "user_id" UUID NOT NULL,
   "prediction_result_id" UUID NOT NULL,
   "points_delta" INTEGER NOT NULL,
@@ -184,7 +182,7 @@ CREATE UNIQUE INDEX "point_transactions_idempotency_key_key" ON "point_transacti
 CREATE INDEX "point_transactions_user_id_created_at_idx" ON "point_transactions"("user_id", "created_at");
 
 CREATE TABLE "notifications" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "user_id" UUID NOT NULL,
   "title" VARCHAR(160) NOT NULL,
   "body" TEXT NOT NULL,
@@ -196,7 +194,7 @@ CREATE TABLE "notifications" (
 CREATE INDEX "notifications_user_id_created_at_idx" ON "notifications"("user_id", "created_at");
 
 CREATE TABLE "device_tokens" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "user_id" UUID NOT NULL,
   "token" TEXT NOT NULL,
   "platform" VARCHAR(20) NOT NULL,
@@ -207,7 +205,7 @@ CREATE TABLE "device_tokens" (
 CREATE UNIQUE INDEX "device_tokens_token_key" ON "device_tokens"("token");
 
 CREATE TABLE "provider_configs" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "provider_code" VARCHAR(60) NOT NULL,
   "enabled" BOOLEAN NOT NULL DEFAULT false,
   "secret_reference" TEXT,
@@ -218,7 +216,7 @@ CREATE TABLE "provider_configs" (
 CREATE UNIQUE INDEX "provider_configs_provider_code_key" ON "provider_configs"("provider_code");
 
 CREATE TABLE "sync_logs" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "provider_code" VARCHAR(60) NOT NULL,
   "resource_type" VARCHAR(40) NOT NULL,
   "started_at" TIMESTAMPTZ(6) NOT NULL,
@@ -232,7 +230,7 @@ CREATE TABLE "sync_logs" (
 CREATE INDEX "sync_logs_provider_code_started_at_idx" ON "sync_logs"("provider_code", "started_at");
 
 CREATE TABLE "audit_logs" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "actor_user_id" UUID,
   "action" VARCHAR(100) NOT NULL,
   "entity_type" VARCHAR(60) NOT NULL,
