@@ -1,0 +1,22 @@
+{
+  "name": "tareh",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TAREH Arabic football companion and free predictions platform",
+  "workspaces": [
+    "backend"
+  ],
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev:api": "npm --workspace @tareh/backend run start:dev",
+    "build:api": "npm --workspace @tareh/backend run build",
+    "test:api": "npm --workspace @tareh/backend run test",
+    "db:up": "docker compose up -d postgres redis",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres redis",
+    "db:migrate": "npm --workspace @tareh/backend run prisma:migrate"
+  }
+}
