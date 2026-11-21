@@ -11,7 +11,7 @@ Native Android application built with Kotlin and Jetpack Compose.
 ## Open and run
 Open the `android/` directory in Android Studio and allow Gradle Sync to finish. Select the `app` configuration and run it on an emulator or device.
 
-The Gradle distribution configuration is in `gradle/wrapper/gradle-wrapper.properties`. If wrapper scripts are not present in the checkout, generate them once from the Android directory using `gradle wrapper --gradle-version 8.13`, or create the wrapper through Android Studio.
+The repository includes the Gradle 8.13 wrapper: run `./gradlew assembleDebug` on macOS/Linux or `gradlew.bat assembleDebug` on Windows.
 
 ## Current implementation
 - Arabic RTL Compose application shell.
