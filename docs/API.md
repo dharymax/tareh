@@ -25,7 +25,7 @@ Development: the placeholder delivery adapter writes the test code to the backen
 
 Access tokens are HS256 JWTs with a 15-minute lifetime. Refresh tokens are random opaque values stored only as SHA-256 hashes, have a 30-day lifetime and rotate on refresh. Logout revokes the current refresh session.
 
-### Football (public read)
+### Admin (authenticated and role-protected)\n- GET /admin/dashboard — requires SUPER_ADMIN or SPORTS_MANAGER.\n\n### Football (public read)
 - GET /leagues?enabled=true|false
 - GET /leagues/:leagueId
 - GET /teams?leagueId=&search=
@@ -55,7 +55,7 @@ The following modules remain on the roadmap and must not be treated as available
 - Team detail and standings.
 - Prediction result settlement and full leaderboard APIs.
 - Notification inbox and device-token registration.
-- Admin dashboard data, user/football management, result finalization, provider sync, audit log management and RBAC-protected write routes.
+- User/football management, result finalization, provider sync, audit log management and RBAC-protected write routes.
 
 ## Match status enum
 SCHEDULED, LIVE, HALF_TIME, PAUSED, FINISHED, POSTPONED, CANCELLED, ABANDONED.
