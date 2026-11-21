@@ -4,7 +4,7 @@ import {
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { MatchStatus } from '../../generated/prisma/client.js';
+import { MatchStatus, Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { mapSportradarStatus } from './sportradar-status.js';
 
@@ -524,7 +524,7 @@ export class SportradarService {
   }
 
   private async upsertTeam(
-    tx: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
+    tx: Prisma.TransactionClient,
     competitor: ParsedCompetitor,
     countryId?: string,
   ) {
