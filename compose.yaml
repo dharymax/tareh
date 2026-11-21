@@ -54,6 +54,7 @@ services:
       OTP_CODE_TTL_SECONDS: ${OTP_CODE_TTL_SECONDS:-300}
       OTP_RESEND_COOLDOWN_SECONDS: ${OTP_RESEND_COOLDOWN_SECONDS:-60}
       OTP_MAX_PER_HOUR: ${OTP_MAX_PER_HOUR:-3}
+    ports:
       - "127.0.0.1:3000:3000"
     depends_on:
       postgres:
