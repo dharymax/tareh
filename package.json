@@ -21,6 +21,7 @@
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f postgres redis",
     "db:migrate": "npm --workspace @tareh/backend run prisma:migrate",
-    "db:seed": "npm --workspace @tareh/backend run db:seed"
+    "db:seed": "npm --workspace @tareh/backend run db:seed",
+    "admin:grant-superuser": "npm --workspace @tareh/backend run admin:grant-superuser"
   }
 }
