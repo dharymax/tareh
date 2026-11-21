@@ -186,6 +186,310 @@ function LoginPanel({ onLogin }: { onLogin: (session: Session) => void }) {
   );
 }
 
+
+type ProviderCompetition = {
+  id: string;
+  name: string;
+  categoryName: string | null;
+  countryCode: string | null;
+};
+
+type ProviderSeason = {
+  id: string;
+  name: string;
+  year: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  disabled: boolean;
+};
+
+type ProviderOverview = {
+  provider: string;
+  connected: boolean;
+  accessLevel: string;
+  availableCompetitions: number;
+  europeanCompetitionCount: number;
+  competitions: ProviderCompetition[];
+  hasEuropeanCoverage: boolean;
+};
+
+type ProviderActionResult = {
+  status?: string;
+  leagueName?: string;
+  seasonName?: string;
+  teamsWritten?: number;
+  matchesWritten?: number;
+  liveEventsRead?: number;
+  existingMatchesUpdated?: number;
+  note?: string;
+};
+
+function ProviderPanel({ accessToken }: { accessToken: string }) {
+  const [overview, setOverview] = useState<ProviderOverview | null>(null);
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState('');
+  const [seasons, setSeasons] = useState<ProviderSeason[]>([]);
+  const [selectedSeasonId, setSelectedSeasonId] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadingSeasons, setLoadingSeasons] = useState(false);
+  const [busyAction, setBusyAction] = useState<'season' | 'live' | null>(null);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [lastResult, setLastResult] = useState<ProviderActionResult | null>(null);
+
+  const loadOverview = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch(`${apiBase}/admin/providers/sportradar/connection`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      const body = await response.json() as { data: ProviderOverview };
+      setOverview(body.data);
+      const firstCompetition = body.data.competitions[0]?.id ?? '';
+      setSelectedCompetitionId((previous) =>
+        previous && body.data.competitions.some((item) => item.id === previous)
+          ? previous
+          : firstCompetition,
+      );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'تعذر الاتصال بمزود البيانات.');
+      setOverview(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadOverview();
+    // Load once per authenticated session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!selectedCompetitionId) {
+      setSeasons([]);
+      setSelectedSeasonId('');
+      return;
+    }
+
+    let active = true;
+    const loadSeasons = async () => {
+      setLoadingSeasons(true);
+      setSeasons([]);
+      setSelectedSeasonId('');
+      setError('');
+      try {
+        const response = await fetch(
+          `${apiBase}/admin/providers/sportradar/competitions/${encodeURIComponent(selectedCompetitionId)}/seasons`,
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+            cache: 'no-store',
+          },
+        );
+        if (!response.ok) throw new Error(await readError(response));
+        const body = await response.json() as { data: { seasons: ProviderSeason[] } };
+        if (!active) return;
+        const available = body.data.seasons.filter((season) => !season.disabled);
+        setSeasons(available);
+        setSelectedSeasonId(available[0]?.id ?? '');
+        if (available.length === 0) {
+          setMessage('لا توجد مواسم متاحة لهذه البطولة ضمن صلاحيات المفتاح الحالي.');
+        } else {
+          setMessage('');
+        }
+      } catch (cause) {
+        if (active) {
+          setError(cause instanceof Error ? cause.message : 'تعذر جلب مواسم البطولة.');
+        }
+      } finally {
+        if (active) setLoadingSeasons(false);
+      }
+    };
+    void loadSeasons();
+    return () => { active = false; };
+  }, [accessToken, selectedCompetitionId]);
+
+  const syncSeason = async () => {
+    if (!selectedCompetitionId || !selectedSeasonId) return;
+    setBusyAction('season');
+    setError('');
+    setMessage('');
+    setLastResult(null);
+    try {
+      const response = await fetch(`${apiBase}/admin/providers/sportradar/sync-season`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          competitionId: selectedCompetitionId,
+          seasonId: selectedSeasonId,
+        }),
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      const body = await response.json() as { data: ProviderActionResult };
+      setLastResult(body.data);
+      setMessage('تم استيراد مباريات الموسم إلى قاعدة بيانات طارح.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'تعذرت مزامنة الموسم.');
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const syncLive = async () => {
+    setBusyAction('live');
+    setError('');
+    setMessage('');
+    setLastResult(null);
+    try {
+      const response = await fetch(`${apiBase}/admin/providers/sportradar/sync-live`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      const body = await response.json() as { data: ProviderActionResult };
+      setLastResult(body.data);
+      setMessage('اكتمل تحديث المباريات المباشرة الموجودة مسبقاً.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'تعذر تحديث المباريات المباشرة.');
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  return (
+    <section className="panel provider-panel">
+      <div className="panel-heading">
+        <div>
+          <h3>مزود المباريات · Sportradar</h3>
+          <p>اكتشاف البطولات الأوروبية واستيراد الموسم وتحديث النتائج المباشرة</p>
+        </div>
+        <span className="muted-chip">Soccer API v4</span>
+      </div>
+
+      <div className="provider-summary">
+        <div>
+          <small>حالة الاتصال</small>
+          <strong className={overview?.connected ? 'online' : 'offline'}>
+            {loading ? 'جارٍ الفحص...' : overview?.connected ? 'متصل' : 'غير متصل'}
+          </strong>
+        </div>
+        <div>
+          <small>مستوى المفتاح</small>
+          <strong>{overview?.accessLevel ?? '—'}</strong>
+        </div>
+        <div>
+          <small>كل البطولات المتاحة</small>
+          <strong>{overview?.availableCompetitions ?? '—'}</strong>
+        </div>
+        <div>
+          <small>بطولات أوروبية</small>
+          <strong>{overview?.europeanCompetitionCount ?? '—'}</strong>
+        </div>
+      </div>
+
+      {error && <div className="admin-alert warning" role="alert">{error}</div>}
+      {message && <div className="provider-success" role="status">{message}</div>}
+
+      {!loading && overview && !overview.hasEuropeanCoverage && (
+        <div className="provider-empty">
+          لم يُرجع المفتاح الحالي بطولات أوروبية. تحقق من اشتراك Soccer API v4 والتغطية المتاحة للحساب.
+        </div>
+      )}
+
+      <div className="provider-controls">
+        <label>
+          <span>البطولة الأوروبية</span>
+          <select
+            value={selectedCompetitionId}
+            onChange={(event) => setSelectedCompetitionId(event.target.value)}
+            disabled={loading || !overview?.competitions.length || busyAction !== null}
+          >
+            {overview?.competitions.length ? (
+              overview.competitions.map((competition) => (
+                <option value={competition.id} key={competition.id}>
+                  {competition.name} · {competition.categoryName ?? 'Europe'}
+                </option>
+              ))
+            ) : (
+              <option value="">لا توجد بطولات متاحة</option>
+            )}
+          </select>
+        </label>
+
+        <label>
+          <span>الموسم</span>
+          <select
+            value={selectedSeasonId}
+            onChange={(event) => setSelectedSeasonId(event.target.value)}
+            disabled={loadingSeasons || seasons.length === 0 || busyAction !== null}
+          >
+            {seasons.length ? (
+              seasons.map((season) => (
+                <option value={season.id} key={season.id}>
+                  {season.name}{season.year ? ` · ${season.year}` : ''}
+                </option>
+              ))
+            ) : (
+              <option value="">{loadingSeasons ? 'جارٍ جلب المواسم...' : 'اختر بطولة متاحة أولاً'}</option>
+            )}
+          </select>
+        </label>
+      </div>
+
+      <div className="provider-actions">
+        <button
+          type="button"
+          onClick={() => void syncSeason()}
+          disabled={!selectedCompetitionId || !selectedSeasonId || busyAction !== null || loading}
+        >
+          {busyAction === 'season' ? 'جارٍ استيراد الموسم...' : 'استيراد الموسم المحدد'}
+        </button>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => void syncLive()}
+          disabled={!overview?.connected || busyAction !== null || loading}
+        >
+          {busyAction === 'live' ? 'جارٍ التحديث...' : 'تحديث المباريات المباشرة'}
+        </button>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => void loadOverview()}
+          disabled={loading || busyAction !== null}
+        >
+          إعادة فحص الاتصال
+        </button>
+      </div>
+
+      {lastResult && (
+        <div className="provider-result">
+          <strong>نتيجة آخر عملية</strong>
+          <div className="provider-result-grid">
+            {lastResult.leagueName && <span>البطولة: <b>{lastResult.leagueName}</b></span>}
+            {lastResult.seasonName && <span>الموسم: <b>{lastResult.seasonName}</b></span>}
+            {lastResult.teamsWritten !== undefined && <span>الفرق: <b>{lastResult.teamsWritten}</b></span>}
+            {lastResult.matchesWritten !== undefined && <span>المباريات المستوردة: <b>{lastResult.matchesWritten}</b></span>}
+            {lastResult.liveEventsRead !== undefined && <span>المباريات المباشرة الواردة: <b>{lastResult.liveEventsRead}</b></span>}
+            {lastResult.existingMatchesUpdated !== undefined && <span>المباريات التي تم تحديثها: <b>{lastResult.existingMatchesUpdated}</b></span>}
+          </div>
+          {lastResult.note && <small>{lastResult.note}</small>}
+        </div>
+      )}
+
+      <p className="provider-disclaimer">
+        استيراد النتائج لا يعتمدها ولا يوزع النقاط تلقائياً. يجب مراجعة كل نتيجة نهائية واعتمادها من مدير مخوّل.
+        مفتاح التجربة للاختبار الداخلي فقط، ولا تعرض بياناته لمستخدمي التطبيق قبل الحصول على ترخيص وموافقة Sportradar.
+      </p>
+    </section>
+  );
+}
+
 function App() {
   const [apiState, setApiState] = useState<ApiState>('checking');
   const [checkedAt, setCheckedAt] = useState<string>('');
@@ -489,6 +793,8 @@ function App() {
             </ul>
           </article>
         </section>
+
+        <ProviderPanel accessToken={session.accessToken} />
 
         <section className="panel review-panel">
           <div className="panel-heading">
