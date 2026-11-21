@@ -186,7 +186,8 @@ export class SportradarService {
       connected: true,
       accessLevel: this.getAccessLevel(),
       availableCompetitions: competitions.length,
-      europeanCompetitions: europeanCompetitions.length,
+      europeanCompetitionCount: europeanCompetitions.length,
+      competitions: europeanCompetitions,
       hasEuropeanCoverage: europeanCompetitions.length > 0,
     };
   }
