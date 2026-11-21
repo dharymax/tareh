@@ -70,3 +70,24 @@ footer{text-align:center;color:#52627a;font-size:9px;padding:26px 0 5px}
 .admin-alert{background:#48252c;border:1px solid #85434b;color:#ffd0d2;border-radius:12px;padding:13px 16px;font-size:11px;margin-top:15px}
 .admin-alert.warning{background:#43351d;border-color:#80642a;color:#ffe1a0}
 .logout-small{margin-right:auto;background:#1b293d;border:1px solid #36465e;color:#c6d1e0;border-radius:8px;font-size:9px;padding:6px 9px;cursor:pointer}
+
+
+.review-panel{margin-top:16px}
+.review-empty{font-size:11px;color:#91a0b5;text-align:center;padding:22px 10px;margin:0}
+.pending-match-list{display:grid;gap:10px}
+.pending-match-item{display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #202d41;padding:14px 0}
+.pending-match-info{display:grid;gap:5px;min-width:0}
+.pending-match-info>span{font-size:9px;color:#e5bf67}
+.pending-match-info>strong{font-size:11px;color:#eef2fa;line-height:1.7}
+.pending-match-info>strong i{font-style:normal;color:#74849c;padding:0 3px}
+.pending-match-info>small{font-size:9px;color:#71819a}
+.pending-score-fields{display:flex;align-items:end;gap:8px;flex-shrink:0}
+.pending-score-fields label{display:grid;gap:4px;text-align:center}
+.pending-score-fields label span{font-size:8px;color:#aab7c8;max-width:75px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pending-score-fields input{width:52px;height:38px;border:1px solid #34445e;border-radius:9px;background:#0b1422;color:#fff;text-align:center;font:inherit;font-size:13px;outline:none}
+.pending-score-fields input:focus{border-color:#d9ae4a;box-shadow:0 0 0 3px #d9ae4a20}
+.pending-score-fields>b{color:#8998ad;padding-bottom:11px}
+.pending-score-fields button{height:38px;border:0;border-radius:9px;background:linear-gradient(100deg,#eccb72,#d29c32);color:#1b1b1b;padding:0 13px;font:inherit;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap}
+.pending-score-fields button:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:900px){.pending-match-item{align-items:stretch;flex-direction:column}.pending-score-fields{justify-content:flex-start;flex-wrap:wrap}.pending-score-fields button{margin-right:auto}}
+@media(max-width:420px){.pending-score-fields{gap:6px}.pending-score-fields input{width:43px}.pending-score-fields button{font-size:8px;padding:0 9px}}
