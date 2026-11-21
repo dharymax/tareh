@@ -14,7 +14,7 @@ Database: PostgreSQL. ORM: Prisma. Primary identifiers: UUID. Store timestamps i
 - users 1—N predictions
 - matches 1—N predictions
 - predictions 1—N prediction_results; results 1—N point_transactions (settlement and reversal history)
-- users 1—N notifications and device_tokens
+- users 1—N notifications, device_tokens and auth_sessions\n- phone numbers 1—N otp_challenges (time-limited, single-use verification challenges)\n- auth_sessions store hashed refresh tokens and revocation/expiry state
 - provider_configs 1—N sync_logs
 
 ## Core PostgreSQL schema (reference DDL)\n\nThe implementation source of truth is `backend/prisma/schema.prisma`; keep this conceptual DDL synchronized when the Prisma schema changes.
