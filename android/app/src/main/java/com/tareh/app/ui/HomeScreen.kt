@@ -161,8 +161,7 @@ private fun MatchHomeContent(
         Column(Modifier.padding(19.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
           Text("مرحباً بك في طارح", color = Gold, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
           Text(
-            "تابع المباريات،
-وتوقّع النتيجة.",
+            "تابع المباريات وتوقّع النتيجة.",
             color = Color.White,
             fontSize = 23.sp,
             lineHeight = 31.sp,
