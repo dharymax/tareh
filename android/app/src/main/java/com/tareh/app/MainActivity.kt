@@ -14,6 +14,7 @@ import com.tareh.app.data.StoredTokens
 import com.tareh.app.data.TarehApi
 import com.tareh.app.data.TarehNetwork
 import com.tareh.app.data.TokenStore
+import com.tareh.app.model.CreatePredictionRequest
 import com.tareh.app.model.MatchDto
 import com.tareh.app.model.RefreshTokenRequest
 import com.tareh.app.model.SendOtpRequest
@@ -42,6 +43,7 @@ class MainActivity : ComponentActivity() {
         var matches by remember { mutableStateOf<List<MatchDto>>(emptyList()) }
         var loading by remember { mutableStateOf(true) }
         var matchError by remember { mutableStateOf<String?>(null) }
+        var predictionMessage by remember { mutableStateOf<String?>(null) }
 
         if (tokens == null) {
           LoginScreen(
@@ -75,6 +77,7 @@ class MainActivity : ComponentActivity() {
                   tokenStore.save(newTokens)
                   tokens = newTokens
                   sentPhone = null
+                  authError = null
                 } catch (exception: Exception) {
                   authError = exception.userMessage()
                 } finally {
@@ -89,25 +92,8 @@ class MainActivity : ComponentActivity() {
             loading = true
             matchError = null
             try {
-              val validTokens = try {
-                api.getMe("Bearer ${current.accessToken}")
-                current
-              } catch (exception: HttpException) {
-                if (exception.code() != 401) throw exception
-                val refreshed = api.refreshSession(
-                  RefreshTokenRequest(current.refreshToken),
-                )
-                StoredTokens(
-                  accessToken = refreshed.accessToken,
-                  refreshToken = refreshed.refreshToken,
-                )
-              }
-
-              if (validTokens != current) {
-                tokenStore.save(validTokens)
-                tokens = validTokens
-              }
-              api.getMe("Bearer ${validTokens.accessToken}")
+              val validTokens = ensureValidSession(api, tokenStore, current)
+              if (validTokens != current) tokens = validTokens
               matches = api.getTodayMatches().data
             } catch (exception: HttpException) {
               if (exception.code() == 401) {
@@ -129,6 +115,7 @@ class MainActivity : ComponentActivity() {
             matches = matches,
             loading = loading,
             error = matchError,
+            predictionMessage = predictionMessage,
             onRefresh = {
               scope.launch {
                 loading = true
@@ -142,11 +129,39 @@ class MainActivity : ComponentActivity() {
                 }
               }
             },
+            onPredict = { matchId, homeGoals, awayGoals ->
+              val current = tokens
+              if (current != null) {
+                scope.launch {
+                  predictionMessage = null
+                  try {
+                    val validTokens = ensureValidSession(api, tokenStore, current)
+                    if (validTokens != current) tokens = validTokens
+                    api.savePrediction(
+                      "Bearer ${validTokens.accessToken}",
+                      CreatePredictionRequest(matchId, homeGoals, awayGoals),
+                    )
+                    predictionMessage = "تم حفظ توقعك بنجاح."
+                  } catch (exception: HttpException) {
+                    if (exception.code() == 401) {
+                      tokenStore.clear()
+                      tokens = null
+                      authError = "انتهت الجلسة. سجّل الدخول مجدداً."
+                    } else {
+                      predictionMessage = exception.userMessage()
+                    }
+                  } catch (exception: Exception) {
+                    predictionMessage = exception.userMessage()
+                  }
+                }
+              }
+            },
             onLogout = {
               tokenStore.clear()
               tokens = null
               sentPhone = null
               authError = null
+              predictionMessage = null
             },
           )
         }
@@ -155,10 +170,33 @@ class MainActivity : ComponentActivity() {
   }
 }
 
+private suspend fun ensureValidSession(
+  api: TarehApi,
+  tokenStore: TokenStore,
+  current: StoredTokens,
+): StoredTokens {
+  try {
+    api.getMe("Bearer ${current.accessToken}")
+    return current
+  } catch (exception: HttpException) {
+    if (exception.code() != 401) throw exception
+  }
+
+  val refreshed = api.refreshSession(RefreshTokenRequest(current.refreshToken))
+  val updated = StoredTokens(
+    accessToken = refreshed.accessToken,
+    refreshToken = refreshed.refreshToken,
+  )
+  tokenStore.save(updated)
+  api.getMe("Bearer ${updated.accessToken}")
+  return updated
+}
+
 private fun Exception.userMessage(): String = when (this) {
   is HttpException -> when (code()) {
-    400 -> "البيانات المدخلة غير صحيحة."
+    400 -> "انتهى وقت التوقع أو البيانات غير صحيحة."
     401 -> "رمز التحقق غير صحيح أو انتهت الجلسة."
+    403 -> "هذا الحساب غير متاح."
     429 -> "طلبات كثيرة. انتظر قليلاً ثم حاول مجدداً."
     503 -> "خدمة إرسال الرسائل غير مهيأة حالياً."
     else -> "تعذر إكمال الطلب. حاول مرة أخرى."
