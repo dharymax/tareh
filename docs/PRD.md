@@ -127,3 +127,7 @@ Never embed provider API keys in Android or browser code.
 
 ## 12. Release boundary
 Release only the free sports product. Do not implement money movement, betting, odds, stake or cash redemption features. Any future change in business model requires separate legal review and a new product specification.
+
+
+## Implemented prediction security note
+The current API derives the user from the verified JWT, validates score fields between 0 and 30, locks the match row during the write transaction, and rejects requests after kickoff or when the match is not SCHEDULED. Public match prediction summaries expose only a total count, not individual selections.
