@@ -25,8 +25,8 @@ macOS/Linux:
 3. Start the NestJS backend in another terminal: `cd backend; npm install; npm run prisma:generate; npm run prisma:deploy; npm run dev`.
 4. Run the app on the Android emulator. Debug builds default to `http://10.0.2.2:3000/api/v1`, which reaches the host computer from the standard Android emulator.
 5. For a physical device on the same LAN, pass a reachable computer address:
-   - PowerShell: `$env:GRADLE_OPTS="-PTAREH_DEBUG_API_BASE_URL=http://192.168.1.10:3000/api/v1"`
-   - Then run `.gradlew.bat assembleDebug` in the same terminal.
+   - Windows PowerShell, from the `android/` directory: `..\\gradlew.bat assembleDebug -PTAREH_DEBUG_API_BASE_URL=http://192.168.1.10:3000/api/v1`.
+   - macOS/Linux, from the `android/` directory: `./gradlew assembleDebug -PTAREH_DEBUG_API_BASE_URL=http://192.168.1.10:3000/api/v1`.
    Replace the sample IP with the computer's LAN address and allow the backend port through the local firewall.
 
 For a release build, set `TAREH_API_BASE_URL` as a Gradle project property to the deployed HTTPS API URL. Release builds disallow cleartext HTTP.
