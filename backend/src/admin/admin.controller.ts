@@ -12,7 +12,7 @@ export class AdminController {
 
   @Get('dashboard')
   @RequireRoles('SUPER_ADMIN', 'SPORTS_MANAGER')
-  dashboard(@CurrentUser() _user: AuthenticatedUser) {
-    return { data: this.adminService.getDashboard() };
+  async dashboard(@CurrentUser() _user: AuthenticatedUser) {
+    return { data: await this.adminService.getDashboard() };
   }
 }
