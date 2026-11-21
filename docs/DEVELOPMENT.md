@@ -76,3 +76,14 @@ For a custom API URL, append:
 - Use separate Development, Staging and Production environments.
 - Backups must be tested by restoring to a separate database.
 - This release contains no betting, odds, deposits, withdrawals, money movement or cash redemption.
+
+
+## Bootstrap the first administrator
+
+1. Start the backend and database, then register and verify the intended administrator phone through OTP.
+2. Run the database seed command to ensure the SUPER_ADMIN role exists.
+3. Add ADMIN_PHONE_E164=+9677XXXXXXXX to backend/.env for the one-time provisioning command.
+4. From the repository root run: npm run admin:grant-superuser
+5. Remove ADMIN_PHONE_E164 from the environment after provisioning.
+
+The provisioning script requires an existing ACTIVE verified account. There is no public API endpoint for self-promoting an account. The Admin web session is kept in page memory; reload the page and sign in again.
