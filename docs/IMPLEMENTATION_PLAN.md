@@ -45,11 +45,13 @@ Exit criteria: app renders provider-backed matches and shows last refresh time.
 - Versioned scoring service.
 - Idempotent settlement and reversal ledger.
 - Leaderboard queries/projections.
+- Role-protected final-result confirmation and atomic point settlement.
 
 Exit criteria: tests prove no post-kickoff submissions and no duplicate point settlement.
 
 ## Weeks 9–10 — admin and notifications
 - Admin login and RBAC.
+- Final-result confirmation and point settlement.
 - Dashboard, users, competitions, teams and matches.
 - Result review/finalization.
 - Sync monitoring and audit log.
