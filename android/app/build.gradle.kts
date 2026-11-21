@@ -4,6 +4,9 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val releaseApiBaseUrl = providers.gradleProperty("TAREH_API_BASE_URL")
+    .orElse("https://api.tareh.example/api/v1")
+
 android {
     namespace = "com.tareh.app"
     compileSdk = 36
@@ -14,10 +17,23 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
+        manifestPlaceholders["allowCleartextTraffic"] = "false"
+    }
+
+    buildTypes {
+        debug {
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:3000/api/v1\"")
+            manifestPlaceholders["allowCleartextTraffic"] = "true"
+        }
+        release {
+            buildConfigField("String", "API_BASE_URL", "\"\u0024{releaseApiBaseUrl.get()}\"")
+            manifestPlaceholders["allowCleartextTraffic"] = "false"
+        }
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     compileOptions {
@@ -41,6 +57,7 @@ kotlin {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.kotlinx.coroutines.android)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
