@@ -1,8 +1,10 @@
 # Sportradar Soccer API v4 setup
 
-## 1. Confirm product access and coverage
+## 1. Confirm product access, licensing and coverage
 
 The integration uses the **Sportradar Soccer API v4** product. A Marketplace account or a key for another Sportradar product is not sufficient by itself; the key must be enabled for Soccer API v4.
+
+**Important legal/product restriction:** Sportradar's current Master Terms (last updated November 13, 2026) restrict a free trial to internal evaluation; trial data/content must not be published or displayed to app users. The terms also require prior written approval for use in a betting, gaming, gambling or wagering capacity, and separately restrict prediction-market, trading, financial-product or similar use without prior written consent. TAREH's free non-cash prediction points do not automatically establish that the use is permitted. Obtain written confirmation from Sportradar and the correct production license/order form before showing the data publicly or launching prediction features that rely on it. Until then, use the trial only for private technical evaluation.
 
 Before importing a competition, use Sportradar's [Coverage Matrix](https://coverage-matrix.sportradar.com/) to verify the specific competition and season. Check that the level includes fixture and score coverage. A competition name in the catalog does not guarantee live scores, events or detailed statistics.
 
