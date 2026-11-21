@@ -10,7 +10,7 @@ val apiBaseUrl = providers.gradleProperty("tarehApiBaseUrl")
 
 android {
   namespace = "com.tareh.app"
-  compileSdk = 37
+  compileSdk = 36
 
   defaultConfig {
     applicationId = "com.tareh.app"
@@ -32,11 +32,16 @@ android {
     targetCompatibility = JavaVersion.VERSION_17
   }
 
-
   packaging {
     resources {
       excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
+  }
+}
+
+kotlin {
+  compilerOptions {
+    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
   }
 }
 
@@ -61,10 +66,4 @@ dependencies {
   androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.espresso.core)
   debugImplementation(libs.compose.ui.tooling)
-}
-
-kotlin {
-  compilerOptions {
-    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-  }
 }
