@@ -4,7 +4,8 @@
   "private": true,
   "description": "TAREH Arabic football companion and free predictions platform",
   "workspaces": [
-    "backend"
+    "backend",
+    "admin"
   ],
   "engines": {
     "node": ">=22.12.0",
@@ -12,7 +13,9 @@
   },
   "scripts": {
     "dev:api": "npm --workspace @tareh/backend run start:dev",
+    "dev:admin": "npm --workspace @tareh/admin run dev",
     "build:api": "npm --workspace @tareh/backend run build",
+    "build:admin": "npm --workspace @tareh/admin run build",
     "test:api": "npm --workspace @tareh/backend run test",
     "db:up": "docker compose up -d postgres redis",
     "db:down": "docker compose down",
