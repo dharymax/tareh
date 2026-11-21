@@ -1,7 +1,8 @@
 import {
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
-  TooManyRequestsException,
   UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -55,7 +56,10 @@ export class AuthService {
     ]);
 
     if (recentCount >= OTP_MAX_PER_HOUR) {
-      throw new TooManyRequestsException('تجاوزت عدد طلبات رمز التحقق المسموح بها');
+      throw new HttpException(
+        'تجاوزت عدد طلبات رمز التحقق المسموح بها',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
     if (
@@ -63,7 +67,10 @@ export class AuthService {
       now.getTime() - latest.createdAt.getTime() <
         OTP_RESEND_COOLDOWN_SECONDS * 1000
     ) {
-      throw new TooManyRequestsException('انتظر قليلاً قبل طلب رمز جديد');
+      throw new HttpException(
+        'انتظر قليلاً قبل طلب رمز جديد',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
     const code = randomInt(100000, 1000000).toString();
