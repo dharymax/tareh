@@ -227,7 +227,9 @@ export class SportradarService {
 
   private isEuropeanCompetition(competition: CompetitionSummary): boolean {
     const code = competition.countryCode?.toUpperCase() ?? '';
+    const categoryName = competition.categoryName?.trim().toLowerCase() ?? '';
     return EUROPEAN_COUNTRY_CODES.has(code) ||
+      categoryName === 'europe' ||
       EUROPEAN_COMPETITION_NAMES.test(competition.name) ||
       EUROPEAN_COMPETITION_NAMES.test(competition.categoryName ?? '');
   }
