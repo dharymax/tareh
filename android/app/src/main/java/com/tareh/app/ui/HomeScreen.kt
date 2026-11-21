@@ -63,6 +63,7 @@ fun HomeScreen(
   loading: Boolean,
   error: String?,
   onRefresh: () -> Unit,
+  onLogout: () -> Unit,
 ) {
   var selectedTab by remember { mutableIntStateOf(0) }
 
@@ -101,6 +102,7 @@ fun HomeScreen(
       PlaceholderTab(
         title = listOf("", "", "التوقعات", "الترتيب", "حسابي")[selectedTab],
         modifier = Modifier.padding(padding),
+        onLogout = onLogout,
       )
     }
   }
@@ -296,7 +298,11 @@ private fun StateCard(
 }
 
 @Composable
-private fun PlaceholderTab(title: String, modifier: Modifier = Modifier) {
+private fun PlaceholderTab(
+  title: String,
+  modifier: Modifier = Modifier,
+  onLogout: () -> Unit,
+) {
   Box(
     modifier = modifier.fillMaxSize().padding(24.dp),
     contentAlignment = Alignment.Center,
@@ -304,6 +310,11 @@ private fun PlaceholderTab(title: String, modifier: Modifier = Modifier) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
       Text(title, color = Gold, fontSize = 20.sp, fontWeight = FontWeight.Bold)
       Text("هذه الصفحة ضمن المرحلة التالية من تطوير طارح.", color = Muted, fontSize = 12.sp)
+      if (title == "حسابي") {
+        Button(onClick = onLogout) {
+          Text("تسجيل الخروج")
+        }
+      }
     }
   }
 }
