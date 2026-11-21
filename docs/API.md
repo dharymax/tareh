@@ -39,6 +39,12 @@ Access tokens are HS256 JWTs with a 15-minute lifetime. Refresh tokens are rando
 
 Match list endpoints use cursor pagination where applicable. Dates supplied by clients use YYYY-MM-DD and are interpreted in Yemen time for the date filter. API timestamps are ISO-8601 UTC.
 
+### Leaderboard (public aggregate data)
+- GET /leaderboard/global?period=all|week|month&limit=50
+- GET /leaderboard/season/:seasonId?limit=50
+
+Weekly periods begin Monday 00:00 in Asia/Aden; monthly periods use the local calendar month. Public ranking data contains display name and avatar only, never phone numbers. Points are derived from the point transaction ledger.
+
 ### Free predictions
 - POST /predictions — Bearer auth; body: { "matchId": "uuid", "homeGoals": 2, "awayGoals": 1 }.
 - PATCH /predictions/:predictionId — Bearer auth; owner only; body: { "homeGoals": 2, "awayGoals": 1 }.
@@ -53,9 +59,9 @@ The following modules remain on the roadmap and must not be treated as available
 
 - User profile editing and user statistics.
 - Team detail and standings.
-- Prediction result settlement and full leaderboard APIs.
+- Resettlement/reversal workflow for correcting a result after it has already been confirmed.
 - Notification inbox and device-token registration.
-- User/football management, result finalization, provider sync, audit log management and RBAC-protected write routes.
+- User/football management, provider sync, audit log management and broader RBAC-protected write routes.
 
 ## Match status enum
 SCHEDULED, LIVE, HALF_TIME, PAUSED, FINISHED, POSTPONED, CANCELLED, ABANDONED.
