@@ -7,6 +7,8 @@ import com.tareh.app.model.RefreshTokenResponse
 import com.tareh.app.model.SendOtpRequest
 import com.tareh.app.model.SendOtpResponse
 import com.tareh.app.model.UserMeDto
+import com.tareh.app.model.CreatePredictionRequest
+import com.tareh.app.model.PredictionDto
 import com.tareh.app.model.MatchDto
 import com.tareh.app.model.VerifyOtpRequest
 import retrofit2.http.Body
@@ -26,6 +28,12 @@ interface TarehApi {
 
   @GET("auth/me")
   suspend fun getMe(@Header("Authorization") authorization: String): UserMeDto
+
+  @POST("predictions")
+  suspend fun savePrediction(
+    @Header("Authorization") authorization: String,
+    @Body body: CreatePredictionRequest,
+  ): ApiEnvelope<PredictionDto>
 
   @GET("matches/today")
   suspend fun getTodayMatches(): ApiEnvelope<List<MatchDto>>
