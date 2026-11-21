@@ -50,3 +50,12 @@ export interface LeaguesResponse {
     generatedAt: string;
   };
 }
+
+export interface TodayMatchesResponse {
+  data: MatchSummary[];
+  meta: {
+    count: number;
+    date: string;
+    timezone: 'Asia/Aden';
+  };
+}
