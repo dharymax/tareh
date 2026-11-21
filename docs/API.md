@@ -118,3 +118,12 @@ Apply highest matching category only. Store scoring-rule version. Do not use goa
 - Do not expose phone numbers or provider secrets in public responses.
 - Validate ownership and role on every protected resource.
 - Return consistent error codes and request IDs.
+
+
+## Implemented free prediction endpoints
+- POST /predictions — Bearer auth; body: { "matchId": "uuid", "homeGoals": 2, "awayGoals": 1 }.
+- PATCH /predictions/:predictionId — Bearer auth; owner only; body: { "homeGoals": 2, "awayGoals": 1 }.
+- GET /predictions/me — Bearer auth; paginated history for the current user.
+- GET /predictions/match/:matchId — public aggregate count only.
+
+Prediction writes derive the user identity from the validated access token; clients cannot provide userId. The API validates goals from 0 to 30, locks the match row inside a PostgreSQL transaction, and accepts a prediction only while the match status is SCHEDULED and its kickoff is still in the future according to the database clock. A unique (userId, matchId) constraint permits one prediction per user and match. The public match summary never reveals individual picks.
