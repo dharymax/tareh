@@ -16,10 +16,10 @@ test('awards 3 points for the correct match outcome', () => {
   );
 });
 
-test('awards 2 points for the correct goal difference', () => {
+test('awards 2 points for the correct total goals', () => {
   assert.deepEqual(
-    calculatePredictionPoints({ homeGoals: 2, awayGoals: 0 }, { homeGoals: 3, awayGoals: 1 }),
-    { points: 2, resultType: 'CORRECT_DIFFERENCE' },
+    calculatePredictionPoints({ homeGoals: 1, awayGoals: 1 }, { homeGoals: 2, awayGoals: 0 }),
+    { points: 2, resultType: 'CORRECT_TOTAL_GOALS' },
   );
 });
 
