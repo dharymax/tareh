@@ -20,6 +20,7 @@
     "db:up": "docker compose up -d postgres redis",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f postgres redis",
-    "db:migrate": "npm --workspace @tareh/backend run prisma:migrate"
+    "db:migrate": "npm --workspace @tareh/backend run prisma:migrate",
+    "db:seed": "npm --workspace @tareh/backend run db:seed"
   }
 }
