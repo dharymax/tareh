@@ -73,10 +73,10 @@ Review user requests and account status; read-only access to prediction and scor
 Use one highest applicable category only:
 - Exact score: 5 points.
 - Correct outcome (home win/draw/away win): 3 points.
-- Correct goal difference: 2 points.
+- Correct total goals (while the match outcome is wrong): 2 points.
 - Otherwise: 0 points.
 
-Do not add categories together. Store a scoring-rule version with every settlement.
+Do not add categories together. Store a scoring-rule version with every settlement. Total goals replaces goal difference because a correct goal difference necessarily implies a correct match outcome.
 
 ## 7. Leaderboards
 - All-time, weekly, monthly and season.
