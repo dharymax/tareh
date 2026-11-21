@@ -23,7 +23,11 @@ Error:
 - POST /auth/logout — revoke refresh token.
 - GET /auth/me — current authenticated account.
 
-OTP codes must be hashed at rest, expire quickly, be single-use and have attempt limits. Select an OTP provider only after testing delivery to +967.
+OTP codes are HMAC-SHA256 hashed at rest, expire after the configured TTL (default 5 minutes), allow at most five verification attempts and are consumed atomically. A phone number is limited to three OTP requests per hour with a 60-second resend cooldown.
+
+Development: the placeholder delivery adapter writes the test code to the backend process log only; the HTTP response never includes the OTP. Production: sending is intentionally disabled and returns a service-unavailable error until a real SMS provider is configured and delivery to +967 is verified.
+
+Access tokens are HS256 JWTs with a 15-minute lifetime. Refresh tokens are random opaque values stored only as SHA-256 hashes, have a 30-day lifetime and rotate on refresh. Logout revokes the current refresh session.
 
 ## Users
 - GET /users/me
