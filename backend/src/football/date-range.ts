@@ -4,8 +4,8 @@ const ADEN_OFFSET = '+03:00';
 
 export function adenDayRange(dateKey: string): { gte: Date; lt: Date } {
   const start = new Date(`${dateKey}T00:00:00${ADEN_OFFSET}`);
-  if (Number.isNaN(start.getTime())) {
-    throw new BadRequestException('Invalid date');
+  if (Number.isNaN(start.getTime()) || currentAdenDateKey(start) !== dateKey) {
+    throw new BadRequestException('Invalid calendar date');
   }
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   return { gte: start, lt: end };
