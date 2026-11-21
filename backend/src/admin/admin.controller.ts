@@ -29,6 +29,12 @@ export class AdminController {
     return { data: await this.adminService.getDashboard() };
   }
 
+  @Get('matches/pending-review')
+  @RequireRoles('SUPER_ADMIN', 'SPORTS_MANAGER')
+  async pendingResultReview(@CurrentUser() _user: AuthenticatedUser) {
+    return { data: await this.adminService.getPendingResultReview() };
+  }
+
   @Post('matches/:matchId/finalize')
   @RequireRoles('SUPER_ADMIN', 'SPORTS_MANAGER')
   finalizeMatch(
