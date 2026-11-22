@@ -24,8 +24,14 @@ export class SportmonksController {
     return { data: await this.sportmonksService.getConnectionStatus() };
   }
 
-  @Get('leagues')
+  @Get('imported-leagues')
   @RequireRoles('SUPER_ADMIN', 'SPORTS_MANAGER')
+  async importedLeagues() {
+    return { data: await this.sportmonksService.getImportedLeagues() };
+  }
+
+  @Get('leagues')
+   @RequireRoles('SUPER_ADMIN', 'SPORTS_MANAGER')
   async leagues() {
     return { data: await this.sportmonksService.getLeagues() };
   }
