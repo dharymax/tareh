@@ -250,6 +250,19 @@ export class SportmonksService {
     };
   }
 
+  async getImportedLeagues() {
+    return this.prisma.league.findMany({
+      where: { providerCode: PROVIDER_CODE },
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        logoUrl: true,
+        country: { select: { name: true } },
+      },
+    });
+  }
+
   async getLeagues(): Promise<SportmonksLeague[]> {
     const response = await this.getJson(
       'leagues?include=country;currentSeason&per_page=50&page=1',
