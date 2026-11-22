@@ -306,7 +306,7 @@ export class SportsProvidersService {
           const scoreFor = (participantId: unknown) => {
             const row = currentScores.find((score) => String(score.participant_id) === String(participantId));
             const goals = asRecord(row?.score)?.goals;
-            return Number.isInteger(goals) ? Number(goals) : null;
+            return typeof goals === 'number' && Number.isInteger(goals) ? goals : null;
           };
           const homeScore = scoreFor(home.id);
           const awayScore = scoreFor(away.id);
