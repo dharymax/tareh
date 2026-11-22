@@ -24,16 +24,16 @@ Copy-Item backend/.env.example backend/.env
 
 Open the root `.env` and `backend/.env` files. Keep the database name, user, password and port consistent. Change the local JWT and OTP hash secrets to random values of at least 32 characters.
 
-Add the Sportradar key only to `backend/.env` when running the API directly with Node (do not commit either .env file):
+Add the SportMonks token only to `backend/.env` when running the API directly with Node (do not commit either .env file):
 
 ```env
-SPORTRADAR_API_KEY=YOUR_SOCCER_API_KEY
-SPORTRADAR_ACCESS_LEVEL=trial
-SPORTRADAR_LANGUAGE=en
-SPORTRADAR_API_BASE_URL=https://api.sportradar.com/soccer
+SPORTMONKS_API_TOKEN=YOUR_NEW_TOKEN
+SPORTMONKS_API_BASE_URL=https://api.sportmonks.com/v3/football
+THESPORTSDB_API_KEY=123
+THESPORTSDB_BASE_URL=https://www.thesportsdb.com/api/v1/json
 ```
 
-The root `.env` file is used by Docker Compose. If you later run the API container instead of the local Node process, put the provider variables in the root `.env` as well.
+The SportMonks token must be stored on the backend only. If a token was pasted into a chat or other shared location, delete it in MySportmonks and create a replacement token. TheSportsDB key 123 is the public free V1 key. The root `.env` file is used by Docker Compose; copy the provider settings there too if you run the API container.
 
 ## 2. Start PostgreSQL and Redis
 
@@ -106,22 +106,23 @@ On the development PC, open:
 
 Sign in using the same phone number. The OTP appears in the Backend terminal.
 
-The dashboard includes a Sportradar panel. It checks the key, lists European competitions available to the account, loads seasons, imports a selected season and refreshes already-imported live matches.
+The dashboard includes a SportMonks panel for checking the token, listing leagues included in the subscription, choosing a season, importing fixtures and updating live scores. A separate TheSportsDB panel can enrich imported league/team badge URLs.
 
 If the browser is on a different PC, set `VITE_API_BASE_URL` to the backend PC's LAN URL before starting Vite, e.g. `http://192.168.1.25:3000/api/v1`.
 
-## 7. Import one European competition for testing
+## 7. Import one SportMonks free-plan competition for testing
 
 In the Admin dashboard:
 
-1. Find **مزود المباريات · Sportradar**.
-2. Confirm the provider status is **متصل**.
-3. Select a European competition returned by the API.
+1. Find **مزودو البيانات الرياضية**.
+2. Confirm SportMonks status is **متصل**.
+3. The free plan currently includes Danish Superliga and Scottish Premiership. Select whichever leagues are actually returned by your account.
 4. Select an available season.
-5. Click **استيراد الموسم المحدد**.
-6. Confirm that the API reports a number of teams and matches imported.
+5. Click **استيراد الموسم**.
+6. Confirm that the API reports teams, fixtures, events and statistics imported.
+7. Under TheSportsDB select the imported local league and click **إثراء شعارات البطولة والأندية**. Review the number of successful team matches.
 
-Start with one competition and one season to avoid spending trial quota on unnecessary requests. Confirm the selected competition/season is actually available under your Sportradar subscription and review its Coverage Matrix entry.
+Start with one league and one season. Coverage depends on the active SportMonks subscription and can change; do not assume paid leagues are available in the free plan.
 
 ## 8. Build an APK for a physical phone
 
@@ -160,19 +161,20 @@ For an Android emulator running on the same PC, you can use the default API addr
 
 ## 9. Test result review in Admin
 
-A result enters the review queue only after the provider reports it as finished. Refresh live data with the Admin provider panel, then open the review section.
+A result enters the review queue only after the provider reports it as finished. Refresh live data with the SportMonks provider panel, then open the review section.
 
 Check the proposed score before clicking **اعتماد النتيجة**. This action settles points and is not a reversible test operation in the current version. Use a dedicated test database and test accounts; do not finalize real matches unless you intend to distribute their points.
 
 ## Important licensing note
 
-Sportradar's trial access is for internal evaluation and must not be used to publish or display trial content to app users. Written confirmation and the appropriate production license are required before public use, particularly for a product with match predictions. A successful API response does not establish display rights.
+Before public launch, review each provider's terms and display rights. SportMonks tokens are private and must remain server-side. TheSportsDB V1 is an attribution/data service; confirm its terms for the intended display of badges and metadata.
 
 ## Troubleshooting
 
-- **401/403 from Sportradar:** verify that the key is enabled for Soccer API v4 and that the access level is `trial` or `production` as issued.
-- **No European competitions:** the current key may have limited trial coverage. Check the account's subscribed product and the Coverage Matrix.
-- **No seasons:** select another competition or verify the selected competition's season coverage.
+- **401/403 from SportMonks:** verify the token in MySportmonks and that the Free Football API is active.
+- **No leagues:** the free plan currently covers Danish Superliga and Scottish Premiership; confirm the leagues returned by your account.
+- **No seasons:** select another season or verify the selected league has seasons in the active subscription.
+- **TheSportsDB finds no team logos:** names may differ from the provider database or a league may not be matched; no unmatched team is modified.
 - **Phone cannot reach API:** ensure same Wi-Fi, use the PC's LAN IPv4, allow TCP 3000 on Private firewall profile, and rebuild using that IP.
 - **Admin says not authorized:** register the account first, run `admin:grant-superuser` for that phone number, then sign out and back in.
 - **No matches in the app:** verify that a season import succeeded and that the API returns rows from `GET /api/v1/matches/upcoming`.
