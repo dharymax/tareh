@@ -375,14 +375,14 @@ export class SportsProvidersService {
   }
 
   private assertDate(value: string): void {
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`))) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`))) {
       throw new ServiceUnavailableException('صيغة التاريخ يجب أن تكون YYYY-MM-DD');
     }
   }
 
   private parseProviderDate(value: string): Date {
     const normalized = value.includes('T') ? value : value.replace(' ', 'T');
-    const date = new Date(/Z$|[+-]\\d{2}:?\\d{2}$/.test(normalized) ? normalized : `${normalized}Z`);
+    const date = new Date(/Z$|[+-]\d{2}:?\d{2}$/.test(normalized) ? normalized : `${normalized}Z`);
     if (Number.isNaN(date.getTime())) throw new ServiceUnavailableException('تاريخ مباراة غير صالح من المزود');
     return date;
   }
