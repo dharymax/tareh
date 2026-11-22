@@ -25,9 +25,10 @@ export function mapSportmonksStatus(
   ) return MatchStatus.ABANDONED;
   if (
     ['FT', 'AET', 'FT_PEN', 'FULL_TIME', 'FINISHED'].includes(code) ||
-    combined.includes('full time') ||
-    combined.includes('finished after') ||
-    combined.includes('finished')
+    (code !== 'BREAK' &&
+      (combined.includes('full time') ||
+        combined.includes('finished after') ||
+        combined.includes('finished')))
   ) return MatchStatus.FINISHED;
 
   if (
