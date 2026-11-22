@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Controller,
   Get,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -25,6 +26,28 @@ export class SportsProvidersController {
   @Get('sportmonks/live')
   async sportmonksLive(@CurrentUser() _user: AuthenticatedUser) {
     return { data: await this.providers.listSportmonksLiveScores() };
+  }
+
+  @Post('sportmonks/sync')
+  async syncSportmonks(
+    @CurrentUser() _user: AuthenticatedUser,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    if ((from && !/^\\d{4}-\\d{2}-\\d{2}$/.test(from)) || (to && !/^\\d{4}-\\d{2}-\\d{2}$/.test(to))) {
+      throw new BadRequestException('from and to must use YYYY-MM-DD');
+    }
+    if (from && to) {
+      const start = new Date(`${from}T00:00:00Z`);
+      const end = new Date(`${to}T00:00:00Z`);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
+        throw new BadRequestException('Invalid date range');
+      }
+      if (end.getTime() - start.getTime() > 31 * 86_400_000) {
+        throw new BadRequestException('Date range cannot exceed 31 days');
+      }
+    }
+    return this.providers.syncSportmonks(from, to);
   }
 
   @Get('sportmonks/fixtures')
