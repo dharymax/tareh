@@ -62,6 +62,26 @@ export class AdminService {
     };
   }
 
+  async getPendingResultReview() {
+    return this.prisma.match.findMany({
+      where: {
+        status: MatchStatus.FINISHED,
+        resultConfirmedAt: null,
+      },
+      orderBy: [{ kickoffAt: 'desc' }, { id: 'asc' }],
+      take: 100,
+      select: {
+        id: true,
+        kickoffAt: true,
+        homeScore: true,
+        awayScore: true,
+        league: { select: { id: true, name: true, logoUrl: true } },
+        homeTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+        awayTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+      },
+    });
+  }
+
   private getYemenTodayRange(): { start: Date; end: Date } {
     const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Asia/Aden',

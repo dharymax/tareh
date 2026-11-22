@@ -16,6 +16,7 @@ import com.tareh.app.data.TarehNetwork
 import com.tareh.app.data.TokenStore
 import com.tareh.app.model.CreatePredictionRequest
 import com.tareh.app.model.MatchDto
+import com.tareh.app.model.LeaderboardEntryDto
 import com.tareh.app.model.RefreshTokenRequest
 import com.tareh.app.model.SendOtpRequest
 import com.tareh.app.model.VerifyOtpRequest
@@ -44,6 +45,9 @@ class MainActivity : ComponentActivity() {
         var loading by remember { mutableStateOf(true) }
         var matchError by remember { mutableStateOf<String?>(null) }
         var predictionMessage by remember { mutableStateOf<String?>(null) }
+        var leaderboard by remember { mutableStateOf<List<LeaderboardEntryDto>>(emptyList()) }
+        var leaderboardLoading by remember { mutableStateOf(true) }
+        var leaderboardError by remember { mutableStateOf<String?>(null) }
 
         if (tokens == null) {
           LoginScreen(
@@ -94,7 +98,16 @@ class MainActivity : ComponentActivity() {
             try {
               val validTokens = ensureValidSession(api, tokenStore, current)
               if (validTokens != current) tokens = validTokens
-              matches = api.getTodayMatches().data
+              matches = api.getUpcomingMatches().data
+              leaderboardLoading = true
+              leaderboardError = null
+              try {
+                leaderboard = api.getLeaderboard().data
+              } catch (exception: Exception) {
+                leaderboardError = exception.userMessage()
+              } finally {
+                leaderboardLoading = false
+              }
             } catch (exception: HttpException) {
               if (exception.code() == 401) {
                 tokenStore.clear()
@@ -116,12 +129,28 @@ class MainActivity : ComponentActivity() {
             loading = loading,
             error = matchError,
             predictionMessage = predictionMessage,
+            leaderboard = leaderboard,
+            leaderboardLoading = leaderboardLoading,
+            leaderboardError = leaderboardError,
+            onRefreshLeaderboard = {
+              scope.launch {
+                leaderboardLoading = true
+                leaderboardError = null
+                try {
+                  leaderboard = api.getLeaderboard().data
+                } catch (exception: Exception) {
+                  leaderboardError = exception.userMessage()
+                } finally {
+                  leaderboardLoading = false
+                }
+              }
+            },
             onRefresh = {
               scope.launch {
                 loading = true
                 matchError = null
                 try {
-                  matches = api.getTodayMatches().data
+                  matches = api.getUpcomingMatches().data
                 } catch (exception: Exception) {
                   matchError = exception.userMessage()
                 } finally {

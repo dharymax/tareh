@@ -10,6 +10,8 @@ import com.tareh.app.model.UserMeDto
 import com.tareh.app.model.CreatePredictionRequest
 import com.tareh.app.model.PredictionDto
 import com.tareh.app.model.MatchDto
+import com.tareh.app.model.LeaderboardEntryDto
+import retrofit2.http.Query
 import com.tareh.app.model.VerifyOtpRequest
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -35,9 +37,17 @@ interface TarehApi {
     @Body body: CreatePredictionRequest,
   ): ApiEnvelope<PredictionDto>
 
-  @GET("matches/today")
-  suspend fun getTodayMatches(): ApiEnvelope<List<MatchDto>>
+  @GET("matches/upcoming")
+  suspend fun getUpcomingMatches(
+    @Query("limit") limit: Int = 50,
+  ): ApiEnvelope<List<MatchDto>>
 
   @GET("matches/live")
   suspend fun getLiveMatches(): ApiEnvelope<List<MatchDto>>
+
+  @GET("leaderboard/global")
+  suspend fun getLeaderboard(
+    @Query("period") period: String = "all",
+    @Query("limit") limit: Int = 50,
+  ): ApiEnvelope<List<LeaderboardEntryDto>>
 }

@@ -52,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tareh.app.model.MatchDto
+import com.tareh.app.model.LeaderboardEntryDto
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -67,6 +68,10 @@ fun HomeScreen(
   loading: Boolean,
   error: String?,
   predictionMessage: String?,
+  leaderboard: List<LeaderboardEntryDto>,
+  leaderboardLoading: Boolean,
+  leaderboardError: String?,
+  onRefreshLeaderboard: () -> Unit,
   onRefresh: () -> Unit,
   onPredict: (String, Int, Int) -> Unit,
   onLogout: () -> Unit,
@@ -96,8 +101,8 @@ fun HomeScreen(
       }
     },
   ) { padding ->
-    if (selectedTab <= 1) {
-      MatchHomeContent(
+    when (selectedTab) {
+      0, 1 -> MatchHomeContent(
         matches = matches,
         loading = loading,
         error = error,
@@ -106,9 +111,15 @@ fun HomeScreen(
         onPredict = onPredict,
         modifier = Modifier.padding(padding),
       )
-    } else {
-      PlaceholderTab(
-        title = listOf("", "", "التوقعات", "الترتيب", "حسابي")[selectedTab],
+      3 -> LeaderboardScreen(
+        entries = leaderboard,
+        loading = leaderboardLoading,
+        error = leaderboardError,
+        onRefresh = onRefreshLeaderboard,
+        modifier = Modifier.padding(padding),
+      )
+      else -> PlaceholderTab(
+        title = if (selectedTab == 2) "التوقعات" else "حسابي",
         modifier = Modifier.padding(padding),
         onLogout = onLogout,
       )
@@ -161,8 +172,7 @@ private fun MatchHomeContent(
         Column(Modifier.padding(19.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
           Text("مرحباً بك في طارح", color = Gold, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
           Text(
-            "تابع المباريات،
-وتوقّع النتيجة.",
+            "تابع المباريات وتوقّع النتيجة.",
             color = Color.White,
             fontSize = 23.sp,
             lineHeight = 31.sp,
@@ -179,7 +189,7 @@ private fun MatchHomeContent(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        Text("مباريات اليوم", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        Text("المباريات القادمة", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
         Text("توقيت صنعاء", color = Muted, fontSize = 10.sp)
       }
     }
@@ -211,8 +221,8 @@ private fun MatchHomeContent(
       }
       matches.isEmpty() -> item {
         StateCard(
-          title = "لا توجد مباريات مجدولة اليوم",
-          message = "سيتم عرض مباريات اليوم هنا عند توفرها من مزود البيانات.",
+          title = "لا توجد مباريات قادمة حالياً",
+          message = "ستظهر هنا مباريات البطولات التي تم استيراد مواسمها من مزود البيانات.",
           action = null,
           onAction = {},
         )
@@ -309,6 +319,117 @@ private fun MatchCard(
             awayGoals.toIntOrNull()?.let { it in 0..30 } == true,
         ) {
           Text("حفظ التوقع")
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun LeaderboardScreen(
+  entries: List<LeaderboardEntryDto>,
+  loading: Boolean,
+  error: String?,
+  onRefresh: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  Column(
+    modifier = modifier
+      .fillMaxSize()
+      .background(Color(0xFF080E1A))
+      .padding(horizontal = 18.dp, vertical = 18.dp),
+    verticalArrangement = Arrangement.spacedBy(14.dp),
+  ) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+      Text("الترتيب العام", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+      Text("أفضل المشاركين حسب نقاط التوقعات المجانية", color = Muted, fontSize = 11.sp)
+    }
+
+    Card(
+      modifier = Modifier.fillMaxWidth(),
+      shape = RoundedCornerShape(16.dp),
+      colors = CardDefaults.cardColors(containerColor = Color(0xFF17263D)),
+    ) {
+      Row(
+        modifier = Modifier.fillMaxWidth().padding(15.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+          Text("الترتيب العام", color = Gold, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+          Text("الترتيب حسب مجموع النقاط", color = Muted, fontSize = 10.sp)
+        }
+        Icon(Icons.Outlined.EmojiEvents, contentDescription = null, tint = Gold, modifier = Modifier.size(30.dp))
+      }
+    }
+
+    when {
+      loading -> Box(
+        modifier = Modifier.fillMaxWidth().weight(1f),
+        contentAlignment = Alignment.Center,
+      ) {
+        CircularProgressIndicator(color = Gold)
+      }
+      error != null -> StateCard(
+        title = "تعذر تحميل الترتيب",
+        message = error,
+        action = "إعادة المحاولة",
+        onAction = onRefresh,
+      )
+      entries.isEmpty() -> StateCard(
+        title = "لا توجد نقاط مسجلة بعد",
+        message = "سيظهر ترتيب المشاركين بعد اعتماد نتائج المباريات واحتساب النقاط.",
+        action = "تحديث",
+        onAction = onRefresh,
+      )
+      else -> LazyColumn(
+        modifier = Modifier.weight(1f),
+        contentPadding = PaddingValues(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(9.dp),
+      ) {
+        items(entries, key = { it.user.id }) { entry ->
+          Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = CardBackground),
+          ) {
+            Row(
+              modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 13.dp),
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+              Box(
+                modifier = Modifier.size(36.dp).clip(CircleShape)
+                  .background(if (entry.rank <= 3) Color(0xFF4A3B20) else Color(0xFF22334B)),
+                contentAlignment = Alignment.Center,
+              ) {
+                Text(
+                  entry.rank.toString(),
+                  color = if (entry.rank <= 3) Gold else Color.White,
+                  fontWeight = FontWeight.Bold,
+                  fontSize = 13.sp,
+                )
+              }
+              Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                  entry.user.displayName,
+                  color = Color.White,
+                  fontSize = 12.sp,
+                  fontWeight = FontWeight.SemiBold,
+                  maxLines = 1,
+                )
+                Text(
+                  "${entry.exactScorePredictions} نتيجة صحيحة بالكامل",
+                  color = Muted,
+                  fontSize = 9.sp,
+                )
+              }
+              Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(entry.points.toString(), color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                Text("نقطة", color = Muted, fontSize = 9.sp)
+              }
+            }
+          }
         }
       }
     }
