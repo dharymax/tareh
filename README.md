@@ -25,7 +25,7 @@
 - [تصميم قاعدة البيانات](docs/DATABASE.md)
 - [واجهات API](docs/API.md)
 - [خطة التنفيذ](docs/IMPLEMENTATION_PLAN.md)
-- [إعداد وربط Sportradar](docs/SPORTRADAR_SETUP.md)
+- [إعداد SportMonks وTheSportsDB](docs/SPORTSMONKS_THESPORTSDB_SETUP.md)
 - [دليل التجربة المحلية والهاتف وAdmin](docs/LOCAL_TESTING.md)
 - [الهوية البصرية](docs/BRAND.md)
 
