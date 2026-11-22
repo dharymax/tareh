@@ -34,7 +34,7 @@ export class SportsProvidersController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    if ((from && !/^\\d{4}-\\d{2}-\\d{2}$/.test(from)) || (to && !/^\\d{4}-\\d{2}-\\d{2}$/.test(to))) {
+    if ((from && !/^\d{4}-\d{2}-\d{2}$/.test(from)) || (to && !/^\d{4}-\d{2}-\d{2}$/.test(to))) {
       throw new BadRequestException('from and to must use YYYY-MM-DD');
     }
     if (from && to) {
