@@ -206,7 +206,7 @@ function parseFixture(item: JsonObject): SportmonksFixture | null {
     id,
     kickoffAt,
     status: mapSportmonksStatus(
-      stringValue(state?.name),
+      stringValue(state?.state) ?? stringValue(state?.name),
       stringValue(state?.developer_name),
     ),
     home,
