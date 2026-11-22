@@ -1,38 +1,68 @@
 import { MatchStatus } from '../../generated/prisma/client.js';
 
 export function mapSportmonksStatus(
-  stateName: string | null,
+  stateCodeOrName: string | null,
   developerName: string | null,
 ): MatchStatus {
-  const state = `${stateName ?? ''} ${developerName ?? ''}`.trim().toLowerCase();
+  const code = (stateCodeOrName ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/[ -]+/g, '_');
+  const description = (developerName ?? '').trim().toLowerCase();
+  const combined = `${code} ${description}`;
 
-  if (state.includes('postpon')) return MatchStatus.POSTPONED;
-  if (state.includes('cancel')) return MatchStatus.CANCELLED;
-  if (state.includes('abandon')) return MatchStatus.ABANDONED;
   if (
-    state === 'ft' ||
-    state.includes('full time') ||
-    state.includes('finished') ||
-    state.includes('after extra time') ||
-    state.includes('after penalties')
+    ['POSTP', 'POSTPONED'].includes(code) ||
+    combined.includes('postpon')
+  ) return MatchStatus.POSTPONED;
+  if (
+    ['CANCL', 'CANCELLED', 'CANCELED'].includes(code) ||
+    combined.includes('cancel')
+  ) return MatchStatus.CANCELLED;
+  if (
+    ['ABAN', 'ABANDONED'].includes(code) ||
+    combined.includes('abandon')
+  ) return MatchStatus.ABANDONED;
+  if (
+    ['FT', 'AET', 'FT_PEN', 'FULL_TIME', 'FINISHED'].includes(code) ||
+    combined.includes('full time') ||
+    combined.includes('finished after') ||
+    combined.includes('finished')
   ) return MatchStatus.FINISHED;
-  if (state.includes('half time') || state === 'ht' || state.includes('halftime')) {
-    return MatchStatus.HALF_TIME;
-  }
+
   if (
-    state.includes('suspend') ||
-    state.includes('interrupt') ||
-    state.includes('delay') ||
-    state.includes('paused')
+    ['HT', 'HALF_TIME', 'HALFTIME'].includes(code) ||
+    combined.includes('half-time') ||
+    combined.includes('half time') ||
+    combined.includes('halftime')
+  ) return MatchStatus.HALF_TIME;
+
+  if (
+    [
+      'SUSPENDED',
+      'SUSP',
+      'DELAYED',
+      'INTERRUPTED',
+      'INT',
+      'BREAK',
+      'EXTRA_TIME_BREAK',
+      'PEN_BREAK',
+      'PAUSED',
+    ].includes(code) ||
+    combined.includes('suspend') ||
+    combined.includes('interrupt') ||
+    combined.includes('delay') ||
+    combined.includes('paused')
   ) return MatchStatus.PAUSED;
+
   if (
-    state.includes('inplay') ||
-    state.includes('in play') ||
-    state.includes('live') ||
-    state.includes('1st half') ||
-    state.includes('2nd half') ||
-    state.includes('extra time') ||
-    state.includes('penalt')
+    code.startsWith('INPLAY') ||
+    ['LIVE', 'ET', 'PEN_LIVE', '1ST_HALF', '2ND_HALF'].includes(code) ||
+    combined.includes('in play') ||
+    combined.includes('1st half') ||
+    combined.includes('2nd half') ||
+    combined.includes('extra time') ||
+    combined.includes('penalty shootout')
   ) return MatchStatus.LIVE;
 
   return MatchStatus.SCHEDULED;
