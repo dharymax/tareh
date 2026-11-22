@@ -225,16 +225,6 @@ function parseFixture(item: JsonObject): SportmonksFixture | null {
   };
 }
 
-function mapTeamForFixture(
-  teamId: number,
-  home: SportmonksParticipant,
-  away: SportmonksParticipant,
-): SportmonksParticipant | null {
-  if (home.id === teamId) return home;
-  if (away.id === teamId) return away;
-  return null;
-}
-
 @Injectable()
 export class SportmonksService {
   constructor(private readonly prisma: PrismaService) {}
