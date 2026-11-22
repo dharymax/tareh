@@ -31,7 +31,7 @@ export class SportmonksController {
   }
 
   @Get('leagues')
-   @RequireRoles('SUPER_ADMIN', 'SPORTS_MANAGER')
+  @RequireRoles('SUPER_ADMIN', 'SPORTS_MANAGER')
   async leagues() {
     return { data: await this.sportmonksService.getLeagues() };
   }
