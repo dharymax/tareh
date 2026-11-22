@@ -30,17 +30,25 @@ Access tokens are HS256 JWTs with a 15-minute lifetime. Refresh tokens are rando
 - GET /admin/matches/pending-review — requires SUPER_ADMIN or SPORTS_MANAGER; returns finished matches awaiting result confirmation.
 - POST /admin/matches/:matchId/finalize — requires SUPER_ADMIN or SPORTS_MANAGER; body: { "homeScore": 2, "awayScore": 1 }. Only accepts finished matches whose result has not already been confirmed. Result settlement and point transactions are committed atomically, with an audit record.
 
-### Sports data provider (admin-only)
+### Sports data providers (admin-only)
 
-All provider endpoints require Bearer authentication and the `SUPER_ADMIN` or `SPORTS_MANAGER` role.
+All provider endpoints require Bearer authentication and the SUPER_ADMIN or SPORTS_MANAGER role.
 
-- GET /admin/providers/sportradar/connection — verifies the Soccer API key and returns the available competition count plus the European competitions detected for the current account.
-- GET /admin/providers/sportradar/competitions?region=europe|all — lists European competitions by default, or the full provider catalogue when region=all.
-- GET /admin/providers/sportradar/competitions/:competitionId/seasons — lists available seasons for a Sportradar competition.
-- POST /admin/providers/sportradar/sync-season — body: { "competitionId": "sr:competition:...", "seasonId": "sr:season:..." }; imports that season's league, teams and fixtures into PostgreSQL.
-- POST /admin/providers/sportradar/sync-live — refreshes scores/status for currently live matches that were previously imported from Sportradar.
+**SportMonks Football API v3 (primary fixtures/results source)**
 
-A provider result with status FINISHED is not automatically trusted or settled. It remains pending until an authorized manager reviews and finalizes it through the Admin match-review workflow. Provider keys are read only from backend environment variables and are never returned by these endpoints. Sync is manual in this version; no polling job is started automatically.
+- GET /admin/providers/sportmonks/connection — checks the server-side API token and returns the competitions available to the account.
+- GET /admin/providers/sportmonks/leagues — lists leagues available to the subscription, with country and current-season summary.
+- GET /admin/providers/sportmonks/leagues/:leagueId/seasons — lists seasons for a SportMonks league ID.
+- GET /admin/providers/sportmonks/imported-leagues — lists local leagues previously imported from SportMonks.
+- POST /admin/providers/sportmonks/sync-season — body: { "leagueId": 271, "seasonId": 17328 }; imports the selected season's teams, fixtures, scores, events and statistics.
+- POST /admin/providers/sportmonks/sync-live — refreshes currently in-play fixtures that have already been imported.
+
+**TheSportsDB V1 (secondary metadata and badge enrichment)**
+
+- GET /admin/providers/thesportsdb/connection — verifies access to the free V1 catalogue.
+- POST /admin/providers/thesportsdb/enrich-league/:localLeagueUuid — attempts country/league/team-name matching and updates local league/team badge URLs when a trustworthy match is found. The free V1 team-list endpoint returns at most 10 records per request.
+
+SportMonks final scores are imported as pending review; they are not automatically confirmed and prediction points are not settled. TheSportsDB is not used for live scores on the free V1 key. Provider tokens are read only from backend environment variables; the TheSportsDB public key defaults to 123. Sync is manually triggered in this version.
 
 ### Football (public read)
 - GET /leagues?enabled=true|false
