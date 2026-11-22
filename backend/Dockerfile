@@ -8,6 +8,7 @@ RUN npm install
 FROM deps AS build
 WORKDIR /app
 ENV DATABASE_URL=postgresql://build:build@127.0.0.1:5432/tareh_build?schema=public
+ENV DIRECT_URL=postgresql://build:build@127.0.0.1:5432/tareh_build?schema=public
 COPY backend ./backend
 RUN npm --workspace @tareh/backend run prisma:generate
 RUN npm --workspace @tareh/backend run build
