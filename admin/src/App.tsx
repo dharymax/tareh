@@ -187,88 +187,150 @@ function LoginPanel({ onLogin }: { onLogin: (session: Session) => void }) {
 }
 
 
-type ProviderCompetition = {
+
+type SportmonksSeason = {
+  id: number;
+  name: string;
+  startsOn: string | null;
+  endsOn: string | null;
+  isCurrent: boolean;
+};
+
+type SportmonksLeague = {
+  id: number;
+  name: string;
+  shortCode: string | null;
+  logoUrl: string | null;
+  countryName: string | null;
+  currentSeason: SportmonksSeason | null;
+};
+
+type ImportedLeague = {
   id: string;
   name: string;
-  categoryName: string | null;
-  countryCode: string | null;
+  logoUrl: string | null;
+  country: { name: string } | null;
 };
 
-type ProviderSeason = {
-  id: string;
-  name: string;
-  year: string | null;
-  startDate: string | null;
-  endDate: string | null;
-  disabled: boolean;
-};
-
-type ProviderOverview = {
-  provider: string;
-  connected: boolean;
-  accessLevel: string;
-  availableCompetitions: number;
-  europeanCompetitionCount: number;
-  competitions: ProviderCompetition[];
-  hasEuropeanCoverage: boolean;
-};
-
-type ProviderActionResult = {
-  status?: string;
+type SportmonksSyncResult = {
+  status: string;
   leagueName?: string;
   seasonName?: string;
   teamsWritten?: number;
   matchesWritten?: number;
-  liveEventsRead?: number;
-  existingMatchesUpdated?: number;
+  eventsWritten?: number;
+  statisticsWritten?: number;
+  liveFixturesRead?: number;
+  importedMatchesUpdated?: number;
   note?: string;
 };
 
+type TheSportsDbResult = {
+  status: string;
+  localLeague?: string;
+  providerLeague?: string;
+  country?: string;
+  leagueBadgeUpdated?: boolean;
+  teamsReturned?: number;
+  localTeams?: number;
+  teamsMatched?: number;
+  updatedTeams?: Array<{ localName: string; providerName: string }>;
+  message?: string;
+  limitNote?: string;
+};
+
 function ProviderPanel({ accessToken }: { accessToken: string }) {
-  const [overview, setOverview] = useState<ProviderOverview | null>(null);
-  const [selectedCompetitionId, setSelectedCompetitionId] = useState('');
-  const [seasons, setSeasons] = useState<ProviderSeason[]>([]);
+  const [sportmonksLeagues, setSportmonksLeagues] = useState<SportmonksLeague[]>([]);
+  const [selectedLeagueId, setSelectedLeagueId] = useState('');
+  const [seasons, setSeasons] = useState<SportmonksSeason[]>([]);
   const [selectedSeasonId, setSelectedSeasonId] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [importedLeagues, setImportedLeagues] = useState<ImportedLeague[]>([]);
+  const [selectedImportedLeagueId, setSelectedImportedLeagueId] = useState('');
+  const [sportmonksConnected, setSportmonksConnected] = useState(false);
+  const [theSportsDbConnected, setTheSportsDbConnected] = useState(false);
+  const [sportmonksLoading, setSportmonksLoading] = useState(true);
+  const [theSportsDbLoading, setTheSportsDbLoading] = useState(true);
   const [loadingSeasons, setLoadingSeasons] = useState(false);
-  const [busyAction, setBusyAction] = useState<'season' | 'live' | null>(null);
+  const [busyAction, setBusyAction] = useState<'season' | 'live' | 'enrich' | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [lastResult, setLastResult] = useState<ProviderActionResult | null>(null);
+  const [syncResult, setSyncResult] = useState<SportmonksSyncResult | null>(null);
+  const [enrichmentResult, setEnrichmentResult] = useState<TheSportsDbResult | null>(null);
 
-  const loadOverview = async () => {
-    setLoading(true);
+  const authHeaders = { Authorization: `Bearer ${accessToken}` };
+
+  const loadImportedLeagues = async () => {
+    const response = await fetch(`${apiBase}/admin/providers/sportmonks/imported-leagues`, {
+      headers: authHeaders,
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new Error(await readError(response));
+    const body = await response.json() as { data: ImportedLeague[] };
+    setImportedLeagues(body.data);
+    setSelectedImportedLeagueId((previous) =>
+      previous && body.data.some((league) => league.id === previous)
+        ? previous
+        : body.data[0]?.id ?? '',
+    );
+  };
+
+  const loadProviders = async () => {
+    setSportmonksLoading(true);
+    setTheSportsDbLoading(true);
     setError('');
     try {
-      const response = await fetch(`${apiBase}/admin/providers/sportradar/connection`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      const response = await fetch(`${apiBase}/admin/providers/sportmonks/connection`, {
+        headers: authHeaders,
         cache: 'no-store',
       });
       if (!response.ok) throw new Error(await readError(response));
-      const body = await response.json() as { data: ProviderOverview };
-      setOverview(body.data);
-      const firstCompetition = body.data.competitions[0]?.id ?? '';
-      setSelectedCompetitionId((previous) =>
-        previous && body.data.competitions.some((item) => item.id === previous)
+      const body = await response.json() as {
+        data: { connected: boolean; availableLeagues: number; leagues: SportmonksLeague[] };
+      };
+      setSportmonksConnected(body.data.connected);
+      setSportmonksLeagues(body.data.leagues);
+      setSelectedLeagueId((previous) =>
+        previous && body.data.leagues.some((league) => String(league.id) === previous)
           ? previous
-          : firstCompetition,
+          : body.data.leagues[0] ? String(body.data.leagues[0].id) : '',
       );
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'تعذر الاتصال بمزود البيانات.');
-      setOverview(null);
+      setSportmonksConnected(false);
+      setSportmonksLeagues([]);
+      setError(cause instanceof Error ? cause.message : 'تعذر الاتصال بـ SportMonks.');
     } finally {
-      setLoading(false);
+      setSportmonksLoading(false);
+    }
+
+    try {
+      const response = await fetch(`${apiBase}/admin/providers/thesportsdb/connection`, {
+        headers: authHeaders,
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      const body = await response.json() as { data: { connected: boolean } };
+      setTheSportsDbConnected(body.data.connected);
+    } catch {
+      setTheSportsDbConnected(false);
+    } finally {
+      setTheSportsDbLoading(false);
+    }
+
+    try {
+      await loadImportedLeagues();
+    } catch {
+      // A missing provider token should not prevent Admin from showing the other provider status.
     }
   };
 
   useEffect(() => {
-    void loadOverview();
-    // Load once per authenticated session.
+    void loadProviders();
+    // Load provider status once per authenticated session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
   useEffect(() => {
-    if (!selectedCompetitionId) {
+    if (!selectedLeagueId) {
       setSeasons([]);
       setSelectedSeasonId('');
       return;
@@ -282,57 +344,52 @@ function ProviderPanel({ accessToken }: { accessToken: string }) {
       setError('');
       try {
         const response = await fetch(
-          `${apiBase}/admin/providers/sportradar/competitions/${encodeURIComponent(selectedCompetitionId)}/seasons`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-            cache: 'no-store',
-          },
+          `${apiBase}/admin/providers/sportmonks/leagues/${encodeURIComponent(selectedLeagueId)}/seasons`,
+          { headers: authHeaders, cache: 'no-store' },
         );
         if (!response.ok) throw new Error(await readError(response));
-        const body = await response.json() as { data: { seasons: ProviderSeason[] } };
+        const body = await response.json() as {
+          data: { seasons: SportmonksSeason[] };
+        };
         if (!active) return;
-        const available = body.data.seasons.filter((season) => !season.disabled);
-        setSeasons(available);
-        setSelectedSeasonId(available[0]?.id ?? '');
-        if (available.length === 0) {
-          setMessage('لا توجد مواسم متاحة لهذه البطولة ضمن صلاحيات المفتاح الحالي.');
+        setSeasons(body.data.seasons);
+        const current = body.data.seasons.find((season) => season.isCurrent);
+        setSelectedSeasonId(String((current ?? body.data.seasons[0])?.id ?? ''));
+        if (body.data.seasons.length === 0) {
+          setMessage('لا توجد مواسم متاحة لهذه البطولة ضمن اشتراك SportMonks.');
         } else {
           setMessage('');
         }
       } catch (cause) {
-        if (active) {
-          setError(cause instanceof Error ? cause.message : 'تعذر جلب مواسم البطولة.');
-        }
+        if (active) setError(cause instanceof Error ? cause.message : 'تعذر جلب المواسم.');
       } finally {
         if (active) setLoadingSeasons(false);
       }
     };
     void loadSeasons();
     return () => { active = false; };
-  }, [accessToken, selectedCompetitionId]);
+  }, [accessToken, selectedLeagueId]);
 
   const syncSeason = async () => {
-    if (!selectedCompetitionId || !selectedSeasonId) return;
+    if (!selectedLeagueId || !selectedSeasonId) return;
     setBusyAction('season');
     setError('');
     setMessage('');
-    setLastResult(null);
+    setSyncResult(null);
     try {
-      const response = await fetch(`${apiBase}/admin/providers/sportradar/sync-season`, {
+      const response = await fetch(`${apiBase}/admin/providers/sportmonks/sync-season`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          competitionId: selectedCompetitionId,
-          seasonId: selectedSeasonId,
+          leagueId: Number(selectedLeagueId),
+          seasonId: Number(selectedSeasonId),
         }),
       });
       if (!response.ok) throw new Error(await readError(response));
-      const body = await response.json() as { data: ProviderActionResult };
-      setLastResult(body.data);
-      setMessage('تم استيراد مباريات الموسم إلى قاعدة بيانات طارح.');
+      const body = await response.json() as { data: SportmonksSyncResult & { leagueId?: string } };
+      setSyncResult(body.data);
+      setMessage('تم استيراد بيانات الموسم إلى قاعدة بيانات طارح.');
+      await loadImportedLeagues();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'تعذرت مزامنة الموسم.');
     } finally {
@@ -344,16 +401,16 @@ function ProviderPanel({ accessToken }: { accessToken: string }) {
     setBusyAction('live');
     setError('');
     setMessage('');
-    setLastResult(null);
+    setSyncResult(null);
     try {
-      const response = await fetch(`${apiBase}/admin/providers/sportradar/sync-live`, {
+      const response = await fetch(`${apiBase}/admin/providers/sportmonks/sync-live`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: authHeaders,
       });
       if (!response.ok) throw new Error(await readError(response));
-      const body = await response.json() as { data: ProviderActionResult };
-      setLastResult(body.data);
-      setMessage('اكتمل تحديث المباريات المباشرة الموجودة مسبقاً.');
+      const body = await response.json() as { data: SportmonksSyncResult };
+      setSyncResult(body.data);
+      setMessage('اكتمل تحديث المباريات المباشرة التي سبق استيرادها.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'تعذر تحديث المباريات المباشرة.');
     } finally {
@@ -361,130 +418,213 @@ function ProviderPanel({ accessToken }: { accessToken: string }) {
     }
   };
 
+  const enrichWithTheSportsDb = async () => {
+    if (!selectedImportedLeagueId) return;
+    setBusyAction('enrich');
+    setError('');
+    setMessage('');
+    setEnrichmentResult(null);
+    try {
+      const response = await fetch(
+        `${apiBase}/admin/providers/thesportsdb/enrich-league/${encodeURIComponent(selectedImportedLeagueId)}`,
+        { method: 'POST', headers: authHeaders },
+      );
+      if (!response.ok) throw new Error(await readError(response));
+      const body = await response.json() as { data: TheSportsDbResult };
+      setEnrichmentResult(body.data);
+      setMessage(
+        body.data.status === 'SUCCESS'
+          ? 'اكتمل إثراء الشعارات والبيانات الوصفية.'
+          : body.data.message ?? 'لم يتم العثور على تطابق للبطولة.',
+      );
+      await loadImportedLeagues();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'تعذر إثراء بيانات TheSportsDB.');
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const selectedLeague = sportmonksLeagues.find(
+    (league) => String(league.id) === selectedLeagueId,
+  );
+
   return (
     <section className="panel provider-panel">
       <div className="panel-heading">
         <div>
-          <h3>مزود المباريات · Sportradar</h3>
-          <p>اكتشاف البطولات الأوروبية واستيراد الموسم وتحديث النتائج المباشرة</p>
+          <h3>مزودو البيانات الرياضية</h3>
+          <p>SportMonks للمباريات والنتائج المباشرة، وTheSportsDB لإثراء الشعارات والبيانات الوصفية</p>
         </div>
-        <span className="muted-chip">Soccer API v4</span>
-      </div>
-
-      <div className="provider-summary">
-        <div>
-          <small>حالة الاتصال</small>
-          <strong className={overview?.connected ? 'online' : 'offline'}>
-            {loading ? 'جارٍ الفحص...' : overview?.connected ? 'متصل' : 'غير متصل'}
-          </strong>
-        </div>
-        <div>
-          <small>مستوى المفتاح</small>
-          <strong>{overview?.accessLevel ?? '—'}</strong>
-        </div>
-        <div>
-          <small>كل البطولات المتاحة</small>
-          <strong>{overview?.availableCompetitions ?? '—'}</strong>
-        </div>
-        <div>
-          <small>بطولات أوروبية</small>
-          <strong>{overview?.europeanCompetitionCount ?? '—'}</strong>
-        </div>
+        <button
+          type="button"
+          className="provider-refresh"
+          onClick={() => void loadProviders()}
+          disabled={sportmonksLoading || theSportsDbLoading || busyAction !== null}
+        >
+          إعادة فحص
+        </button>
       </div>
 
       {error && <div className="admin-alert warning" role="alert">{error}</div>}
       {message && <div className="provider-success" role="status">{message}</div>}
 
-      {!loading && overview && !overview.hasEuropeanCoverage && (
-        <div className="provider-empty">
-          لم يُرجع المفتاح الحالي بطولات أوروبية. تحقق من اشتراك Soccer API v4 والتغطية المتاحة للحساب.
-        </div>
-      )}
+      <div className="provider-source-grid">
+        <article className="provider-source-card">
+          <div className="provider-source-heading">
+            <div>
+              <strong>SportMonks Football API v3</strong>
+              <small>المباريات · النتائج المباشرة · الأحداث · الإحصاءات</small>
+            </div>
+            <span className={sportmonksConnected ? 'provider-status online' : 'provider-status offline'}>
+              {sportmonksLoading ? 'جارٍ الفحص' : sportmonksConnected ? 'متصل' : 'غير متصل'}
+            </span>
+          </div>
 
-      <div className="provider-controls">
-        <label>
-          <span>البطولة الأوروبية</span>
-          <select
-            value={selectedCompetitionId}
-            onChange={(event) => setSelectedCompetitionId(event.target.value)}
-            disabled={loading || !overview?.competitions.length || busyAction !== null}
-          >
-            {overview?.competitions.length ? (
-              overview.competitions.map((competition) => (
-                <option value={competition.id} key={competition.id}>
-                  {competition.name} · {competition.categoryName ?? 'Europe'}
-                </option>
-              ))
-            ) : (
-              <option value="">لا توجد بطولات متاحة</option>
-            )}
-          </select>
-        </label>
+          <div className="provider-summary">
+            <div><small>البطولات المتاحة</small><strong>{sportmonksLeagues.length || '—'}</strong></div>
+            <div><small>مستوى الاشتراك</small><strong>Free / حسابك</strong></div>
+          </div>
 
-        <label>
-          <span>الموسم</span>
-          <select
-            value={selectedSeasonId}
-            onChange={(event) => setSelectedSeasonId(event.target.value)}
-            disabled={loadingSeasons || seasons.length === 0 || busyAction !== null}
-          >
-            {seasons.length ? (
-              seasons.map((season) => (
-                <option value={season.id} key={season.id}>
-                  {season.name}{season.year ? ` · ${season.year}` : ''}
+          {!sportmonksLoading && sportmonksConnected && (
+            <div className="provider-note">
+              الباقة المجانية تعرض البطولات المتاحة لحسابك فقط؛ وفق الخطة المجانية الحالية تشمل Danish Superliga وScottish Premiership.
+            </div>
+          )}
+
+          <div className="provider-controls">
+            <label>
+              <span>البطولة</span>
+              <select
+                value={selectedLeagueId}
+                onChange={(event) => setSelectedLeagueId(event.target.value)}
+                disabled={sportmonksLoading || sportmonksLeagues.length === 0 || busyAction !== null}
+              >
+                {sportmonksLeagues.length ? sportmonksLeagues.map((league) => (
+                  <option value={league.id} key={league.id}>
+                    {league.name}{league.countryName ? ` · ${league.countryName}` : ''}
+                  </option>
+                )) : <option value="">لا توجد بطولات متاحة</option>}
+              </select>
+            </label>
+            <label>
+              <span>الموسم</span>
+              <select
+                value={selectedSeasonId}
+                onChange={(event) => setSelectedSeasonId(event.target.value)}
+                disabled={loadingSeasons || seasons.length === 0 || busyAction !== null}
+              >
+                {seasons.length ? seasons.map((season) => (
+                  <option value={season.id} key={season.id}>
+                    {season.name}{season.isCurrent ? ' · الحالي' : ''}
+                  </option>
+                )) : <option value="">{loadingSeasons ? 'جارٍ تحميل المواسم...' : 'لا توجد مواسم'}</option>}
+              </select>
+            </label>
+          </div>
+
+          {selectedLeague?.currentSeason && (
+            <div className="provider-current-season">
+              الموسم الحالي من المزود: <b>{selectedLeague.currentSeason.name}</b>
+            </div>
+          )}
+
+          <div className="provider-actions">
+            <button
+              type="button"
+              onClick={() => void syncSeason()}
+              disabled={!selectedLeagueId || !selectedSeasonId || busyAction !== null || sportmonksLoading}
+            >
+              {busyAction === 'season' ? 'جارٍ الاستيراد...' : 'استيراد الموسم'}
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => void syncLive()}
+              disabled={!sportmonksConnected || busyAction !== null || sportmonksLoading}
+            >
+              {busyAction === 'live' ? 'جارٍ التحديث...' : 'تحديث المباريات المباشرة'}
+            </button>
+          </div>
+        </article>
+
+        <article className="provider-source-card">
+          <div className="provider-source-heading">
+            <div>
+              <strong>TheSportsDB V1</strong>
+              <small>شعارات البطولات والأندية وبياناتها الوصفية</small>
+            </div>
+            <span className={theSportsDbConnected ? 'provider-status online' : 'provider-status offline'}>
+              {theSportsDbLoading ? 'جارٍ الفحص' : theSportsDbConnected ? 'متصل' : 'غير متصل'}
+            </span>
+          </div>
+
+          <div className="provider-summary">
+            <div><small>المعدل المجاني</small><strong>30 طلباً / دقيقة</strong></div>
+            <div><small>نوع الربط</small><strong>إثراء الشعارات</strong></div>
+          </div>
+
+          <label className="provider-enrich-select">
+            <span>البطولة المستوردة من SportMonks</span>
+            <select
+              value={selectedImportedLeagueId}
+              onChange={(event) => setSelectedImportedLeagueId(event.target.value)}
+              disabled={importedLeagues.length === 0 || busyAction !== null}
+            >
+              {importedLeagues.length ? importedLeagues.map((league) => (
+                <option value={league.id} key={league.id}>
+                  {league.name}{league.country?.name ? ` · ${league.country.name}` : ''}
                 </option>
-              ))
-            ) : (
-              <option value="">{loadingSeasons ? 'جارٍ جلب المواسم...' : 'اختر بطولة متاحة أولاً'}</option>
-            )}
-          </select>
-        </label>
+              )) : <option value="">استورد بطولة من SportMonks أولاً</option>}
+            </select>
+          </label>
+
+          <div className="provider-actions">
+            <button
+              type="button"
+              onClick={() => void enrichWithTheSportsDb()}
+              disabled={!theSportsDbConnected || !selectedImportedLeagueId || busyAction !== null}
+            >
+              {busyAction === 'enrich' ? 'جارٍ البحث عن الشعارات...' : 'إثراء شعارات البطولة والأندية'}
+            </button>
+          </div>
+
+          <div className="provider-note">
+            TheSportsDB المجاني لا يزوّد طارح بالنتائج المباشرة؛ هذا الجزء لا يغيّر النتائج أو مواعيد المباريات. قد يعيد endpoint المجاني حتى 10 فرق فقط لكل بطولة.
+          </div>
+        </article>
       </div>
 
-      <div className="provider-actions">
-        <button
-          type="button"
-          onClick={() => void syncSeason()}
-          disabled={!selectedCompetitionId || !selectedSeasonId || busyAction !== null || loading}
-        >
-          {busyAction === 'season' ? 'جارٍ استيراد الموسم...' : 'استيراد الموسم المحدد'}
-        </button>
-        <button
-          type="button"
-          className="secondary"
-          onClick={() => void syncLive()}
-          disabled={!overview?.connected || busyAction !== null || loading}
-        >
-          {busyAction === 'live' ? 'جارٍ التحديث...' : 'تحديث المباريات المباشرة'}
-        </button>
-        <button
-          type="button"
-          className="secondary"
-          onClick={() => void loadOverview()}
-          disabled={loading || busyAction !== null}
-        >
-          إعادة فحص الاتصال
-        </button>
-      </div>
-
-      {lastResult && (
+      {(syncResult || enrichmentResult) && (
         <div className="provider-result">
           <strong>نتيجة آخر عملية</strong>
-          <div className="provider-result-grid">
-            {lastResult.leagueName && <span>البطولة: <b>{lastResult.leagueName}</b></span>}
-            {lastResult.seasonName && <span>الموسم: <b>{lastResult.seasonName}</b></span>}
-            {lastResult.teamsWritten !== undefined && <span>الفرق: <b>{lastResult.teamsWritten}</b></span>}
-            {lastResult.matchesWritten !== undefined && <span>المباريات المستوردة: <b>{lastResult.matchesWritten}</b></span>}
-            {lastResult.liveEventsRead !== undefined && <span>المباريات المباشرة الواردة: <b>{lastResult.liveEventsRead}</b></span>}
-            {lastResult.existingMatchesUpdated !== undefined && <span>المباريات التي تم تحديثها: <b>{lastResult.existingMatchesUpdated}</b></span>}
-          </div>
-          {lastResult.note && <small>{lastResult.note}</small>}
+          {syncResult && (
+            <div className="provider-result-grid">
+              {syncResult.leagueName && <span>البطولة: <b>{syncResult.leagueName}</b></span>}
+              {syncResult.seasonName && <span>الموسم: <b>{syncResult.seasonName}</b></span>}
+              {syncResult.teamsWritten !== undefined && <span>الفرق: <b>{syncResult.teamsWritten}</b></span>}
+              {syncResult.matchesWritten !== undefined && <span>المباريات: <b>{syncResult.matchesWritten}</b></span>}
+              {syncResult.eventsWritten !== undefined && <span>الأحداث: <b>{syncResult.eventsWritten}</b></span>}
+              {syncResult.statisticsWritten !== undefined && <span>الإحصاءات: <b>{syncResult.statisticsWritten}</b></span>}
+              {syncResult.liveFixturesRead !== undefined && <span>مباريات مباشرة مقروءة: <b>{syncResult.liveFixturesRead}</b></span>}
+              {syncResult.importedMatchesUpdated !== undefined && <span>مباريات محدثة: <b>{syncResult.importedMatchesUpdated}</b></span>}
+            </div>
+          )}
+          {enrichmentResult && (
+            <div className="provider-result-grid">
+              {enrichmentResult.providerLeague && <span>بطولة TheSportsDB: <b>{enrichmentResult.providerLeague}</b></span>}
+              {enrichmentResult.teamsMatched !== undefined && <span>الأندية المطابقة: <b>{enrichmentResult.teamsMatched}/{enrichmentResult.localTeams ?? 0}</b></span>}
+              {enrichmentResult.leagueBadgeUpdated !== undefined && <span>شعار البطولة: <b>{enrichmentResult.leagueBadgeUpdated ? 'تم تحديثه' : 'لم يتوفر'}</b></span>}
+            </div>
+          )}
+          {(syncResult?.note || enrichmentResult?.limitNote || enrichmentResult?.message) && (
+            <small>{syncResult?.note || enrichmentResult?.limitNote || enrichmentResult?.message}</small>
+          )}
         </div>
       )}
 
       <p className="provider-disclaimer">
-        استيراد النتائج لا يعتمدها ولا يوزع النقاط تلقائياً. يجب مراجعة كل نتيجة نهائية واعتمادها من مدير مخوّل.
-        مفتاح التجربة للاختبار الداخلي فقط، ولا تعرض بياناته لمستخدمي التطبيق قبل الحصول على ترخيص وموافقة Sportradar.
+        النتائج النهائية التي تصل من SportMonks تُحفظ للمراجعة فقط؛ لا تُعتمد ولا تُوزع النقاط تلقائياً. TheSportsDB مخصص هنا للبيانات الوصفية والشعارات.
       </p>
     </section>
   );
