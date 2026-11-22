@@ -337,6 +337,7 @@ export class SportmonksService {
       if (!league) throw new BadGatewayException('SportMonks returned invalid league details.');
 
       const fixtures: SportmonksFixture[] = [];
+      let paginationLimitReached = false;
       for (let page = 1; page <= 40; page += 1) {
         const response = await this.getJson(
           `fixtures/seasons/${input.seasonId}?include=${INCLUDE_FIXTURE_DATA}&per_page=50&page=${page}`,
@@ -352,7 +353,16 @@ export class SportmonksService {
         fixtures.push(...pageFixtures);
         const meta = asObject(response.meta);
         const pagination = asObject(meta?.pagination);
-        if (pagination?.has_more !== true && pagination?.hasMore !== true) break;
+        const hasMore =
+          pagination?.has_more === true || pagination?.hasMore === true;
+        if (!hasMore) break;
+        if (page === 40) paginationLimitReached = true;
+      }
+
+      if (paginationLimitReached) {
+        throw new BadGatewayException(
+          'The selected season exceeds the 2,000-fixture import safety limit. Import a narrower date range or contact support.',
+        );
       }
 
       if (fixtures.length === 0) {
@@ -503,7 +513,7 @@ export class SportmonksService {
           eventsWritten,
           statisticsWritten,
         };
-      });
+      }, { maxWait: 10_000, timeout: 300_000 });
 
       await this.prisma.syncLog.update({
         where: { id: sync.id },
@@ -591,7 +601,7 @@ export class SportmonksService {
           count += 1;
         }
         return count;
-      });
+      }, { maxWait: 10_000, timeout: 60_000 });
 
       await this.prisma.syncLog.update({
         where: { id: sync.id },
