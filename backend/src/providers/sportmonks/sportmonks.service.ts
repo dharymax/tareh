@@ -776,6 +776,7 @@ export class SportmonksService {
       if (!key) continue;
       const data = relationObject(item.data);
       const value = data?.value ?? item.value ?? null;
+      const statisticValue = { value: value as Prisma.InputJsonValue | null };
 
       await tx.matchStatistic.upsert({
         where: {
@@ -785,9 +786,9 @@ export class SportmonksService {
           matchId,
           teamId,
           statisticKey: key,
-          statisticValue: { value },
+          statisticValue,
         },
-        update: { statisticValue: { value } },
+        update: { statisticValue },
       });
       written += 1;
     }
