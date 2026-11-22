@@ -29,10 +29,10 @@ export function mapSportmonksStatus(
     state.includes('inplay') ||
     state.includes('in play') ||
     state.includes('live') ||
-    state === '1st half' ||
-    state === '2nd half' ||
-    state === 'extra time' ||
-    state === 'penalties'
+    state.includes('1st half') ||
+    state.includes('2nd half') ||
+    state.includes('extra time') ||
+    state.includes('penalt')
   ) return MatchStatus.LIVE;
 
   return MatchStatus.SCHEDULED;
