@@ -23,7 +23,9 @@ function list(value: unknown): JsonObject[] {
 }
 
 function stringValue(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  return null;
 }
 
 function normalizeName(value: string): string {
