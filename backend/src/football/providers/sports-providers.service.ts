@@ -143,8 +143,8 @@ export class SportsProvidersService {
 
   async syncSportmonks(dateFrom?: string, dateTo?: string) {
     const now = new Date();
-    const from = dateFrom ?? new Date(now.getTime() - 7 * 86_400_000).toISOString().slice(0, 10);
-    const to = dateTo ?? new Date(now.getTime() + 30 * 86_400_000).toISOString().slice(0, 10);
+    const from = dateFrom ?? new Date(now.getTime() - 3 * 86_400_000).toISOString().slice(0, 10);
+    const to = dateTo ?? new Date(now.getTime() + 28 * 86_400_000).toISOString().slice(0, 10);
     this.assertDate(from);
     this.assertDate(to);
     const start = new Date(`${from}T00:00:00Z`);
@@ -224,7 +224,7 @@ export class SportsProvidersService {
             });
           }
         }
-        const pagination = response.pagination as JsonRecord | undefined;
+        const pagination = (response.pagination ?? (response.meta as JsonRecord | undefined)?.pagination) as JsonRecord | undefined;
         if (!pagination?.has_more || rows.length === 0) break;
       }
 
@@ -268,9 +268,25 @@ export class SportsProvidersService {
           const awayTeam = await saveTeam(away);
 
           let seasonId: string | null = null;
-          if (fixture.season_id) {
+          const fixtureSeason = fixture.season as JsonRecord | undefined;
+          if (fixture.season_id && fixtureSeason?.name) {
+            const seasonName = String(fixtureSeason.name).slice(0, 80);
+            const season = await this.prisma.season.upsert({
+              where: { leagueId_name: { leagueId: league.id, name: seasonName } },
+              create: {
+                leagueId: league.id,
+                name: seasonName,
+                startsOn: fixtureSeason.starting_at ? new Date(`${fixtureSeason.starting_at}T00:00:00Z`) : null,
+                endsOn: fixtureSeason.ending_at ? new Date(`${fixtureSeason.ending_at}T00:00:00Z`) : null,
+                isCurrent: fixtureSeason.is_current === true,
+              },
+              update: {},
+              select: { id: true },
+            });
+            seasonId = season.id;
+          } else {
             const season = await this.prisma.season.findFirst({
-              where: { leagueId: league.id, name: { contains: String(fixture.season_id) } },
+              where: { leagueId: league.id, isCurrent: true },
               select: { id: true },
             });
             seasonId = season?.id ?? null;
