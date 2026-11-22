@@ -339,7 +339,7 @@ export class SportsProvidersService {
           });
           fixturesWritten += 1;
         }
-        const pagination = response.pagination as JsonRecord | undefined;
+        const pagination = (response.pagination ?? (response.meta as JsonRecord | undefined)?.pagination) as JsonRecord | undefined;
         if (!pagination?.has_more || rows.length === 0) break;
       }
 
