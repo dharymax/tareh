@@ -4,10 +4,16 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { MatchStatus, Prisma } from '../../generated/prisma/client.js';
+import { MatchStatus } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-type JsonRecord = Record<string, any>;
+type JsonRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): JsonRecord | undefined {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as JsonRecord
+    : undefined;
+}
 type ProviderStatus = {
   configured: boolean;
   reachable: boolean;
@@ -238,8 +244,8 @@ export class SportsProvidersService {
         for (const fixture of rows) {
           const leagueExternalId = fixture.league_id;
           const participants = Array.isArray(fixture.participants) ? fixture.participants as JsonRecord[] : [];
-          const home = participants.find((item) => item.meta?.location === 'home');
-          const away = participants.find((item) => item.meta?.location === 'away');
+          const home = participants.find((item) => asRecord(item.meta)?.location === 'home');
+          const away = participants.find((item) => asRecord(item.meta)?.location === 'away');
           if (!fixture.id || !leagueExternalId || !home?.id || !away?.id || !fixture.starting_at) continue;
 
           const league = await this.prisma.league.findUnique({
@@ -299,7 +305,7 @@ export class SportsProvidersService {
           const currentScores = scores.filter((score) => String(score.description ?? '').toUpperCase() === 'CURRENT');
           const scoreFor = (participantId: unknown) => {
             const row = currentScores.find((score) => String(score.participant_id) === String(participantId));
-            const goals = row?.score?.goals;
+            const goals = asRecord(row?.score)?.goals;
             return Number.isInteger(goals) ? Number(goals) : null;
           };
           const homeScore = scoreFor(home.id);
