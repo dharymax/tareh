@@ -6,6 +6,8 @@ describe('mapSportmonksStatus', () => {
   it('maps scheduled, live and half-time states', () => {
     expect(mapSportmonksStatus('Not Started', 'NOT_STARTED')).toBe(MatchStatus.SCHEDULED);
     expect(mapSportmonksStatus('In Progress', 'INPLAY')).toBe(MatchStatus.LIVE);
+    expect(mapSportmonksStatus('Second Half', '2ND_HALF')).toBe(MatchStatus.LIVE);
+    expect(mapSportmonksStatus('Extra Time', 'EXTRA_TIME')).toBe(MatchStatus.LIVE);
     expect(mapSportmonksStatus('Half Time', 'HT')).toBe(MatchStatus.HALF_TIME);
   });
 
